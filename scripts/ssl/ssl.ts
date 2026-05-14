@@ -85,6 +85,30 @@ const generateCertificate = (opts: {
   cert.setSubject(CERT_ATTRS);
   cert.setIssuer(CERT_ATTRS);
 
+  cert.setExtensions([
+    {
+      name: "basicConstraints",
+      cA: false,
+    },
+    {
+      name: "keyUsage",
+      digitalSignature: true,
+      keyEncipherment: true,
+    },
+    {
+      name: "extKeyUsage",
+      serverAuth: true,
+    },
+    {
+      name: "subjectAltName",
+      altNames: [
+        { type: 2, value: "localhost" },
+        { type: 7, ip: "127.0.0.1" },
+        { type: 7, ip: "::1" },
+      ],
+    },
+  ]);
+
   // the actual certificate signing
   cert.sign(privateKey);
 

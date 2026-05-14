@@ -90,9 +90,16 @@ const mockDb = {
   },
 
   // Simuleer leerlingen per gebruiker
-  async getStudents(userId: string): Promise<any[]> {
-    // Vervang door: SELECT * FROM students WHERE teacher_id = ?
-    return MOCK_STUDENTS.filter((s) => s.teacherId === userId);
+  async getStudents(
+    userId: string,
+    groupId?: string,
+  ): Promise<any[]> {
+    // Vervang door: SELECT * FROM students WHERE teacher_id = ? AND group_id = ?
+    let students = MOCK_STUDENTS.filter((s) => s.teacherId === userId);
+    if (groupId) {
+      students = students.filter((s) => s.group === groupId);
+    }
+    return students;
   },
 
   async getGroups(userId: string): Promise<any[]> {
@@ -139,9 +146,11 @@ app.get("/api/groups", requireAuth, async (req, res) => {
 
 /**
  * Geef alle leerlingen terug voor de ingelogde juf, inclusief observaties.
+ * Optioneel gefilterd op group_id query parameter.
  */
 app.get("/api/students", requireAuth, async (req, res) => {
-  const students = await mockDb.getStudents((req as any).userId);
+  const groupId = req.query.group_id as string | undefined;
+  const students = await mockDb.getStudents((req as any).userId, groupId);
   res.json(students);
 });
 

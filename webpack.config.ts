@@ -214,24 +214,55 @@ function buildDevConfig(options?: DevConfig): {
       directory: path.resolve(process.cwd(), "examples/assets"),
       publicPath: "/assets",
     },
+    setupMiddlewares: (middlewares, server) => {
+      if (!server) {
+        return middlewares;
+      }
+
+      server.app.use((req, res, next) => {
+        const origin = req.headers.origin;
+        if (origin) {
+          res.setHeader("Access-Control-Allow-Origin", origin);
+        }
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Headers", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        res.setHeader("Access-Control-Allow-Private-Network", "true");
+
+        if (req.method === "OPTIONS") {
+          res.status(204).end();
+          return;
+        }
+
+        next();
+      });
+
+      return middlewares;
+    },
   };
 
-  if (enableHmr && appOrigin) {
-    devServer = {
-      ...devServer,
-      allowedHosts: [host, new URL(appOrigin).hostname],
-      headers: {
-        "Access-Control-Allow-Origin": appOrigin || "*",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Private-Network": "true",
-      },
-    };
-  } else {
-    if (enableHmr && !appOrigin) {
-      console.warn(
-        "Attempted to enable Hot Module Replacement (HMR) without configuring App Origin... Disabling HMR.",
-      );
-    }
+  const resolvedAllowedHosts = appOrigin
+    ? [host, new URL(appOrigin).hostname]
+    : [host];
+
+  devServer = {
+    ...devServer,
+    allowedHosts: resolvedAllowedHosts,
+    headers: {
+      "Access-Control-Allow-Origin": appOrigin || "*",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Private-Network": "true",
+    },
+  };
+
+  if (!enableHmr) {
+    devServer.webSocketServer = false;
+  } else if (!appOrigin) {
+    console.warn(
+      "Attempted to enable Hot Module Replacement (HMR) without configuring App Origin... Disabling HMR.",
+    );
     devServer.webSocketServer = false;
   }
 

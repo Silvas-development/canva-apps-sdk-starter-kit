@@ -1,7 +1,23 @@
-import React from "react";
+import { AppUiProvider } from "@canva/app-ui-kit";
+import type { DesignEditorIntent } from "@canva/intents/design";
+import { prepareDesignEditor } from "@canva/intents/design";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
 import "@canva/app-ui-kit/styles.css";
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
+async function render() {
+	const root = createRoot(document.getElementById("root") as Element);
+
+	root.render(
+		<AppUiProvider>
+			<App />
+		</AppUiProvider>,
+	);
+}
+
+const designEditor: DesignEditorIntent = { render };
+prepareDesignEditor(designEditor);
+
+if (module.hot) {
+	module.hot.accept("./app", render);
+}
