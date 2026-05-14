@@ -221,7 +221,7 @@ function buildDevConfig(options?: DevConfig): {
       ...devServer,
       allowedHosts: [host, new URL(appOrigin).hostname],
       headers: {
-        "Access-Control-Allow-Origin": appOrigin,
+        "Access-Control-Allow-Origin": appOrigin || "*",
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Private-Network": "true",
       },

@@ -1,4 +1,7 @@
-import { prepareDesignEditor } from "@canva/intents/design";
-import designEditor from "./intents/design_editor";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { App } from "./app";
+import "@canva/app-ui-kit/styles.css";
 
-prepareDesignEditor(designEditor);
+const root = createRoot(document.getElementById("root")!);
+root.render(<App />);
