@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const kit = require\\('@canva/app-ui-kit'\\); console.log\\(Object.keys\\(kit\\).filter\\(k => k.toLowerCase\\(\\).includes\\('color'\\) || k.toLowerCase\\(\\).includes\\('swatch'\\) || k.toLowerCase\\(\\).includes\\('palette'\\)\\)\\)\")",
+      "Bash(xargs grep -o '\"types\":[^,}]*')",
+      "Bash(xargs grep -l \"ColorSelector\\\\|ColorSwatch\\\\|ColorPicker\")",
+      "Bash(xargs cat)",
+      "Bash(xargs grep -l \"fill\\\\|ShapePath\\\\|color\")",
+      "Bash(xargs grep -l \"ShapePath\\\\|ShapeFill\\\\|fill.*color\")"
     ]
   }
 }

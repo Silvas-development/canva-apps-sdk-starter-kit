@@ -7,6 +7,8 @@ import {
   Alert,
   Button,
   Checkbox,
+  ColorSelector,
+  Slider,
   Grid,
   ImageCard,
   MultilineInput,
@@ -167,6 +169,8 @@ const BODY_FONT_STORAGE_KEY = "kleuterapp_body_font";
 const STUDENT_PHOTO_REF_MAP_STORAGE_KEY = "kleuterapp_student_photo_ref_map";
 const STUDENT_NAME_ID_MAP_STORAGE_KEY = "kleuterapp_student_name_id_map";
 const NIVEAU_HAND_REF_MAP_STORAGE_KEY = "kleuterapp_niveau_hand_ref_map";
+const CARD_BG_COLOR_STORAGE_KEY = "kleuterapp_card_bg_color";
+const CARD_BG_ALPHA_STORAGE_KEY = "kleuterapp_card_bg_alpha";
 const DEFAULT_REPORT_TITLE = "Kijk eens wat ik al kan!";
 const DEFAULT_REPORT_CONTENT_OPTIONS: ReportContentOptions = {
   photoPage: true,
@@ -186,6 +190,17 @@ const PAGE_H = Math.round(PAGE_W / A4_RATIO);
 const uploadedBackgrounds = new Map<string, Promise<ImageRef>>();
 const uploadedTapes = new Map<string, Promise<ImageRef>>();
 const uploadedNiveauHands = new Map<string, Promise<ImageRef>>();
+let currentCardBgColor = "#ffffff";
+
+function blendWithWhite(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const t = Math.max(0, Math.min(100, alpha)) / 100;
+  const blend = (c: number) => Math.round(255 * (1 - t) + c * t).toString(16).padStart(2, "0");
+  return `#${blend(r)}${blend(g)}${blend(b)}`;
+}
+
 const niveauHandRefToColor = new Map<string, string>(
   (() => { try { const s = localStorage.getItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY); return s ? JSON.parse(s) as [string, string][] : []; } catch { return []; } })()
 );
@@ -1074,7 +1089,7 @@ async function buildPolaroidElements(
 
     elements.push(
       createRectangleShape(top + 5, left + 5, polaroidWidth, polaroidHeight, "#d9d9d9"),
-      createRectangleShape(top, left, polaroidWidth, polaroidHeight, "#ffffff"),
+      createRectangleShape(top, left, polaroidWidth, polaroidHeight, currentCardBgColor),
       {
         type: "image",
         ref: placeholderRef,
@@ -1152,7 +1167,7 @@ async function buildExtraPolaroidPageElements(
 
     elements.push(
       createRectangleShape(top + 5, left + 5, polaroidWidth, polaroidHeight, "#d9d9d9"),
-      createRectangleShape(top, left, polaroidWidth, polaroidHeight, "#ffffff"),
+      createRectangleShape(top, left, polaroidWidth, polaroidHeight, currentCardBgColor),
     );
 
     if (placeholderRef) {
@@ -1263,7 +1278,7 @@ async function generateSelfDrawingPage(
         margin,
         panelWidth,
         panelHeight,
-        "#ffffff",
+        currentCardBgColor,
       ),
       {
         type: "text" as const,
@@ -1410,12 +1425,12 @@ async function generateColoredLevelHandsPage(
     const boxTop = 72;
     elements.push(
       createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
-      createRectangleShape(boxTop, margin, tableWidth, textBoxH, "#ffffff"),
+      createRectangleShape(boxTop, margin, tableWidth, textBoxH, currentCardBgColor),
       { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
     );
   }
 
-  elements.push(createRectangleShape(tableTop, margin, tableWidth, tableHeight, "#ffffff"));
+  elements.push(createRectangleShape(tableTop, margin, tableWidth, tableHeight, currentCardBgColor));
 
   if (visibleRows.length === 0) {
     elements.push(
@@ -1529,7 +1544,7 @@ async function generateColoredLevelHandsPage(
     const boxTop = contentBottom + 16;
     elements.push(
       createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
-      createRectangleShape(boxTop, margin, tableWidth, textBoxH, "#ffffff"),
+      createRectangleShape(boxTop, margin, tableWidth, textBoxH, currentCardBgColor),
       { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
     );
   }
@@ -1558,124 +1573,130 @@ async function generateGoalDescriptionsPage(
   const panelHeight = PAGE_H - panelTop - 70;
   const contentLeft = panelMargin + 16;
   const contentWidth = panelWidth - 32;
-
-  const grouped = new Map<string, DoelomschrijvingRow[]>();
-  doelen.forEach((item) => {
-    if (!grouped.has(item.ontwikkellijn)) {
-      grouped.set(item.ontwikkellijn, []);
-    }
-    grouped.get(item.ontwikkellijn)!.push(item);
-  });
-
-  const elements: any[] = [
-    {
-      type: "text" as const,
-      top: 40,
-      left: panelMargin,
-      width: panelWidth,
-      children: ["Ontwikkeldoelen"],
-      fontSize: 26,
-      fontWeight: "bold" as const,
-      ...fontProps(headingFont),
-    },
-    createRectangleShape(panelTop, panelMargin, panelWidth, panelHeight, "#ffffff"),
-  ];
-
-  let cursorTop = panelTop + 16;
   const maxContentBottom = panelTop + panelHeight - 16;
   const groupTitleHeight = 28;
   const itemRowHeight = 52;
-  let truncated = false;
 
-  for (const [ontwikkellijn, items] of grouped.entries()) {
-    if (cursorTop + groupTitleHeight > maxContentBottom) {
-      truncated = true;
-      break;
+  const grouped: Array<{ ontwikkellijn: string; items: DoelomschrijvingRow[] }> = [];
+  doelen.forEach((item) => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.ontwikkellijn === item.ontwikkellijn) {
+      last.items.push(item);
+    } else {
+      grouped.push({ ontwikkellijn: item.ontwikkellijn, items: [item] });
     }
+  });
 
-    elements.push({
-      type: "text" as const,
-      top: cursorTop,
-      left: contentLeft,
-      width: contentWidth,
-      children: [ontwikkellijn],
-      fontWeight: "bold" as const,
-      fontSize: 16,
-      ...fontProps(bodyFont),
-    });
-    cursorTop += groupTitleHeight;
+  // Pre-upload alle niveau-handje afbeeldingen
+  const handRefs = new Map<string, ImageRef>();
+  for (const group of grouped) {
+    for (const item of group.items) {
+      if (!handRefs.has(item.niveaukleur)) {
+        handRefs.set(item.niveaukleur, await uploadNiveauHand(buildNiveauHandImageUrl(item.niveaukleur)));
+      }
+    }
+  }
 
-    for (const item of items) {
-      if (cursorTop + itemRowHeight > maxContentBottom) {
-        truncated = true;
+  let gIdx = 0;
+  let iIdx = 0;
+  let pageIndex = 0;
+
+  while (gIdx < grouped.length) {
+    const elements: any[] = [
+      {
+        type: "text" as const,
+        top: 40,
+        left: panelMargin,
+        width: panelWidth,
+        children: ["Ontwikkeldoelen"],
+        fontSize: 26,
+        fontWeight: "bold" as const,
+        ...fontProps(headingFont),
+      },
+      createRectangleShape(panelTop, panelMargin, panelWidth, panelHeight, currentCardBgColor),
+    ];
+
+    let cursorTop = panelTop + 16;
+    let pageFull = false;
+
+    while (gIdx < grouped.length && !pageFull) {
+      const group = grouped[gIdx]!;
+
+      if (cursorTop + groupTitleHeight > maxContentBottom) {
+        pageFull = true;
         break;
       }
 
-      const handRef = await uploadNiveauHand(
-        buildNiveauHandImageUrl(item.niveaukleur),
-      );
+      elements.push({
+        type: "text" as const,
+        top: cursorTop,
+        left: contentLeft,
+        width: contentWidth,
+        children: [group.ontwikkellijn],
+        fontWeight: "bold" as const,
+        fontSize: 16,
+        ...fontProps(bodyFont),
+      });
+      cursorTop += groupTitleHeight;
 
-      elements.push(
-        {
-          type: "image",
-          ref: handRef,
-          top: cursorTop + 6,
-          left: contentLeft,
-          width: 18,
-          height: 18,
-          altText: {
-            text: `niveaukleur:${item.niveaukleur}`,
-            decorative: true,
+      while (iIdx < group.items.length) {
+        if (cursorTop + itemRowHeight > maxContentBottom) {
+          pageFull = true;
+          break;
+        }
+
+        const item = group.items[iIdx]!;
+        const handRef = handRefs.get(item.niveaukleur)!;
+
+        elements.push(
+          {
+            type: "image",
+            ref: handRef,
+            top: cursorTop + 6,
+            left: contentLeft,
+            width: 18,
+            height: 18,
+            altText: { text: `niveaukleur:${item.niveaukleur}`, decorative: true },
           },
-        },
-        {
-          type: "text" as const,
-          top: cursorTop + 7,
-          left: contentLeft + 26,
-          width: 190,
-          children: [item.doelnaam],
-          fontSize: 13,
-          ...fontProps(bodyFont),
-        },
-        {
-          type: "text" as const,
-          top: cursorTop + 7,
-          left: contentLeft + 224,
-          width: contentWidth - 224,
-          children: [item.doelomschrijving],
-          textAlign: "end" as const,
-          fontSize: 13,
-          ...fontProps(bodyFont),
-        },
-      );
+          {
+            type: "text" as const,
+            top: cursorTop + 7,
+            left: contentLeft + 26,
+            width: 190,
+            children: [item.doelnaam],
+            fontSize: 13,
+            ...fontProps(bodyFont),
+          },
+          {
+            type: "text" as const,
+            top: cursorTop + 7,
+            left: contentLeft + 224,
+            width: contentWidth - 224,
+            children: [item.doelomschrijving],
+            textAlign: "end" as const,
+            fontSize: 13,
+            ...fontProps(bodyFont),
+          },
+        );
+        cursorTop += itemRowHeight;
+        iIdx++;
+      }
 
-      cursorTop += itemRowHeight;
+      if (!pageFull) {
+        cursorTop += 4;
+        gIdx++;
+        iIdx = 0;
+      }
     }
 
-    if (truncated) {
-      break;
-    }
-
-    cursorTop += 4;
-  }
-
-  if (truncated) {
-    elements.push({
-      type: "text" as const,
-      top: Math.max(cursorTop, panelTop + panelHeight - 24),
-      left: contentLeft,
-      width: contentWidth,
-      children: ["Niet alle doelen passen op deze pagina."],
-      fontSize: 11,
-      ...fontProps(bodyFont),
+    const title = pageIndex === 0 ? student.name : `${student.name} (doelen ${pageIndex + 1})`;
+    await addPageWithRetry({
+      title,
+      background,
+      elements: [...elements, ...buildPageFooterElements(student.name)],
     });
+    pageIndex++;
   }
-
-  await addPageWithRetry({
-    title: student.name,
-    background,
-    elements: [...elements, ...buildPageFooterElements(student.name)],
-  });
 }
 
 async function generateGoalLevelsPage(
@@ -1700,159 +1721,162 @@ async function generateGoalLevelsPage(
   const maxBottom = PAGE_H - 60;
   const panelTop = columnsTop - 10;
   const panelHeight = maxBottom - panelTop;
+  const colContentHeight = maxBottom - columnsTop;
 
   const grouped = new Map<string, OntwikkelniveauRow[]>();
   doelen.forEach((item) => {
-    if (!grouped.has(item.ontwikkellijn)) {
-      grouped.set(item.ontwikkellijn, []);
-    }
+    if (!grouped.has(item.ontwikkellijn)) grouped.set(item.ontwikkellijn, []);
     grouped.get(item.ontwikkellijn)!.push(item);
   });
 
-  const blocks: Array<{ ontwikkellijn: string; items: OntwikkelniveauRow[]; estimatedHeight: number }> = [];
-  for (const [ontwikkellijn, items] of grouped.entries()) {
-    blocks.push({
-      ontwikkellijn,
-      items,
-      estimatedHeight: 28 + items.length * 34 + 8,
-    });
+  // Pre-upload all niveau hand images once
+  const handRefCache = new Map<string, ImageRef>();
+  for (const items of grouped.values()) {
+    for (const item of items) {
+      for (const c of ["1", "2"] as const) {
+        const color = item.niveaukleur?.[c];
+        if (color && !handRefCache.has(color)) {
+          handRefCache.set(color, await uploadNiveauHand(buildNiveauHandImageUrl(color)));
+        }
+      }
+    }
   }
 
-  const leftBlocks: typeof blocks = [];
-  const rightBlocks: typeof blocks = [];
-  let leftHeight = 0;
-  let rightHeight = 0;
-  blocks.forEach((block) => {
-    if (leftHeight <= rightHeight) {
-      leftBlocks.push(block);
-      leftHeight += block.estimatedHeight;
-    } else {
-      rightBlocks.push(block);
-      rightHeight += block.estimatedHeight;
+  type Block = { ontwikkellijn: string; items: OntwikkelniveauRow[]; estHeight: number; estElements: number };
+  const allBlocks: Block[] = [];
+  for (const [ontwikkellijn, items] of grouped.entries()) {
+    const estElements = 1 + items.reduce((sum, item) => {
+      let e = 1;
+      if (item.niveaukleur?.["1"]) e++;
+      if (item.niveaukleur?.["2"]) e++;
+      return sum + e;
+    }, 0);
+    allBlocks.push({ ontwikkellijn, items, estHeight: 26 + items.length * 30 + 8, estElements });
+  }
+
+  // Distribute blocks across pages respecting element limit (100) and column height
+  const MAX_CONTENT_ELEMENTS = 94; // leaves room for title, rect, footer
+  const pageGroups: Array<{ left: Block[]; right: Block[] }> = [];
+  let bIdx = 0;
+
+  while (bIdx < allBlocks.length) {
+    const pageBlocks: Block[] = [];
+    let pageElements = 0;
+    let lH = 0;
+    let rH = 0;
+
+    while (bIdx < allBlocks.length) {
+      const block = allBlocks[bIdx]!;
+      if (pageElements + block.estElements > MAX_CONTENT_ELEMENTS) break;
+      const goLeft = lH <= rH;
+      if (goLeft && lH + block.estHeight > colContentHeight) break;
+      if (!goLeft && rH + block.estHeight > colContentHeight) break;
+      if (goLeft) lH += block.estHeight;
+      else rH += block.estHeight;
+      pageBlocks.push(block);
+      pageElements += block.estElements;
+      bIdx++;
     }
-  });
 
-  const elements: any[] = [
-    {
-      type: "text" as const,
-      top: titleTop,
-      left: margin,
-      width: availableWidth,
-      children: ["Ontwikkeldoelen niveaus"],
-      fontSize: 26,
-      fontWeight: "bold" as const,
-      ...fontProps(headingFont),
-    },
-    createRectangleShape(panelTop, margin, availableWidth, panelHeight, "#ffffff"),
-  ];
+    // Safety: always advance at least one block to avoid infinite loop
+    if (pageBlocks.length === 0 && bIdx < allBlocks.length) {
+      pageBlocks.push(allBlocks[bIdx]!);
+      bIdx++;
+    }
 
-  const renderColumn = async (
-    x: number,
-    blocksToRender: typeof blocks,
-  ) => {
-    let y = columnsTop;
+    // Balance pageBlocks between left and right columns
+    const left: Block[] = [];
+    const right: Block[] = [];
+    let ll = 0;
+    let rr = 0;
+    for (const b of pageBlocks) {
+      if (ll <= rr) { left.push(b); ll += b.estHeight; }
+      else { right.push(b); rr += b.estHeight; }
+    }
+    pageGroups.push({ left, right });
+  }
 
-    for (const block of blocksToRender) {
-      if (y + 24 > maxBottom) {
-        return true;
-      }
-
-      elements.push({
+  for (let pageIdx = 0; pageIdx < pageGroups.length; pageIdx++) {
+    const { left, right } = pageGroups[pageIdx]!;
+    const elements: any[] = [
+      {
         type: "text" as const,
-        top: y,
-        left: x,
-        width: columnWidth,
-        children: [block.ontwikkellijn],
+        top: titleTop,
+        left: margin,
+        width: availableWidth,
+        children: ["Ontwikkeldoelen niveaus"],
+        fontSize: 26,
         fontWeight: "bold" as const,
-        fontSize: 15,
-        ...fontProps(bodyFont),
-      });
-      y += 26;
+        ...fontProps(headingFont),
+      },
+      createRectangleShape(panelTop, margin, availableWidth, panelHeight, currentCardBgColor),
+    ];
 
-      for (const item of block.items) {
-        if (y + 30 > maxBottom) {
-          return true;
-        }
-
-        const color1 = item.niveaukleur?.["1"];
-        const color2 = item.niveaukleur?.["2"];
-        const iconSize = 18;
-        const iconTop = y + 4;
-        let textLeft = x;
-
-        if (color1) {
-          const ref1 = await uploadNiveauHand(buildNiveauHandImageUrl(color1));
-          elements.push({
-            type: "image",
-            ref: ref1,
-            top: iconTop,
-            left: x,
-            width: iconSize,
-            height: iconSize,
-            altText: {
-              text: `niveaukleur:${color1}`,
-              decorative: true,
-            },
-          });
-          textLeft = x + 22;
-        }
-
-        if (color2) {
-          const ref2 = await uploadNiveauHand(buildNiveauHandImageUrl(color2));
-          elements.push({
-            type: "image",
-            ref: ref2,
-            top: iconTop,
-            left: x + 22,
-            width: iconSize,
-            height: iconSize,
-            altText: {
-              text: `niveaukleur:${color2}`,
-              decorative: true,
-            },
-          });
-          textLeft = x + 44;
-        }
-
+    const renderCol = (x: number, blocksToRender: Block[]) => {
+      let y = columnsTop;
+      for (const block of blocksToRender) {
         elements.push({
           type: "text" as const,
-          top: y + 2,
-          left: textLeft + 4,
-          width: columnWidth - (textLeft - x) - 4,
-          children: [item.doelnaam],
-          fontSize: 13,
+          top: y,
+          left: x,
+          width: columnWidth,
+          children: [block.ontwikkellijn],
+          fontWeight: "bold" as const,
+          fontSize: 15,
           ...fontProps(bodyFont),
         });
+        y += 26;
 
-        y += 30;
+        for (const item of block.items) {
+          const color1 = item.niveaukleur?.["1"];
+          const color2 = item.niveaukleur?.["2"];
+          const iconTop = y + 4;
+          const iconSize = 18;
+          let textLeft = x;
+
+          if (color1) {
+            elements.push({
+              type: "image",
+              ref: handRefCache.get(color1)!,
+              top: iconTop, left: x, width: iconSize, height: iconSize,
+              altText: { text: `niveaukleur:${color1}`, decorative: true },
+            });
+            textLeft = x + 22;
+          }
+          if (color2) {
+            elements.push({
+              type: "image",
+              ref: handRefCache.get(color2)!,
+              top: iconTop, left: x + 22, width: iconSize, height: iconSize,
+              altText: { text: `niveaukleur:${color2}`, decorative: true },
+            });
+            textLeft = x + 44;
+          }
+          elements.push({
+            type: "text" as const,
+            top: y + 2,
+            left: textLeft + 4,
+            width: columnWidth - (textLeft - x) - 4,
+            children: [item.doelnaam],
+            fontSize: 13,
+            ...fontProps(bodyFont),
+          });
+          y += 30;
+        }
+        y += 8;
       }
+    };
 
-      y += 8;
-    }
+    renderCol(leftColX, left);
+    renderCol(rightColX, right);
 
-    return false;
-  };
-
-  const leftTruncated = await renderColumn(leftColX, leftBlocks);
-  const rightTruncated = await renderColumn(rightColX, rightBlocks);
-
-  if (leftTruncated || rightTruncated) {
-    elements.push({
-      type: "text" as const,
-      top: PAGE_H - 76,
-      left: margin,
-      width: availableWidth,
-      children: ["Niet alle doelen passen op deze pagina."],
-      fontSize: 11,
-      ...fontProps(bodyFont),
+    const title = pageIdx === 0 ? student.name : `${student.name} (niveaus ${pageIdx + 1})`;
+    await addPageWithRetry({
+      title,
+      background,
+      elements: [...elements, ...buildPageFooterElements(student.name)],
     });
   }
-
-  await addPageWithRetry({
-    title: student.name,
-    background,
-    elements: [...elements, ...buildPageFooterElements(student.name)],
-  });
 }
 
 async function generateGroeigrafiekenPage(
@@ -1914,7 +1938,7 @@ async function generateGroeigrafiekenPage(
       const boxTop = 62;
       elements.push(
         createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
-        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, "#ffffff"),
+        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, currentCardBgColor),
         { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
       );
     }
@@ -1937,7 +1961,7 @@ async function generateGroeigrafiekenPage(
 
       elements.push(
         createRectangleShape(cardTop + 4, cardLeft + 4, cardW, cardH, "#cccccc"),
-        createRectangleShape(cardTop, cardLeft, cardW, cardH, "#ffffff"),
+        createRectangleShape(cardTop, cardLeft, cardW, cardH, currentCardBgColor),
         {
           type: "image",
           ref: chartRef,
@@ -1965,7 +1989,7 @@ async function generateGroeigrafiekenPage(
       const boxTop = lastCardBottom + 16;
       elements.push(
         createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
-        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, "#ffffff"),
+        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, currentCardBgColor),
         { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
       );
     }
@@ -2065,7 +2089,7 @@ async function generateRapport(
       textAlign: "center" as const,
       ...fontProps(headingFont),
     },
-    createRectangleShape(infoCardTop, infoCardLeft, infoCardWidth, infoCardHeight, "#ffffff"),
+    createRectangleShape(infoCardTop, infoCardLeft, infoCardWidth, infoCardHeight, currentCardBgColor),
     {
       type: "image" as const,
       ref,
@@ -2115,7 +2139,7 @@ async function generateRapport(
     ...polaroids,
     ...(reportFooter.trim()
       ? [
-          createRectangleShape(978, 40, PAGE_W - 80, 130, "#ffffff"),
+          createRectangleShape(978, 40, PAGE_W - 80, 130, currentCardBgColor),
           {
             type: "text" as const,
             top: 990,
@@ -2426,6 +2450,10 @@ function SettingsScreen({
   onHeadingFontChange,
   bodyFont,
   onBodyFontChange,
+  cardBgColor,
+  onCardBgColorChange,
+  cardBgAlpha,
+  onCardBgAlphaChange,
 }: {
   teacherName: string;
   onTeacherNameChange: (name: string) => void;
@@ -2447,6 +2475,10 @@ function SettingsScreen({
   onHeadingFontChange: (font: SelectedFont | null) => void;
   bodyFont: SelectedFont | null;
   onBodyFontChange: (font: SelectedFont | null) => void;
+  cardBgColor: string;
+  onCardBgColorChange: (color: string) => void;
+  cardBgAlpha: number;
+  onCardBgAlphaChange: (alpha: number) => void;
 }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -2514,7 +2546,7 @@ function SettingsScreen({
         <Text variant="bold">Tapes kiezen</Text>
         <Text tone="tertiary">
           {selectedTapes.length > 0
-            ? `${selectedTapes.length} van 4 geselecteerd`
+            ? `${selectedTapes.length} van 10 geselecteerd`
             : "Nog geen tapes geselecteerd."}
         </Text>
         <Button variant="secondary" onClick={onOpenTapePicker} stretch>
@@ -2564,6 +2596,14 @@ function SettingsScreen({
             Wissen
           </Button>
         )}
+      </Rows>
+
+      <Rows spacing="1u">
+        <Text variant="bold">Achtergrondkleur vlakken</Text>
+        <Text tone="tertiary">Kleur van de kaarten en tekstblokken op gegenereerde pagina's. (standaard: wit)</Text>
+        <ColorSelector color={cardBgColor} onChange={onCardBgColorChange} />
+        <Text tone="tertiary">Dekking: {cardBgAlpha}%</Text>
+        <Slider min={0} max={100} step={1} value={cardBgAlpha} onChange={onCardBgAlphaChange} />
       </Rows>
 
       {/* Koppelcode en ontkoppelen zijn nu verplaatst naar SupportScreen */}
@@ -3079,6 +3119,8 @@ function GeneratingScreen({
   selectedBackground,
   headingFont,
   bodyFont,
+  cardBgColor,
+  cardBgAlpha,
   onStudentPhotoMapped,
   onStudentNameMapped,
   onDone,
@@ -3099,6 +3141,8 @@ function GeneratingScreen({
   selectedBackground?: BackgroundOption;
   headingFont: SelectedFont | null;
   bodyFont: SelectedFont | null;
+  cardBgColor: string;
+  cardBgAlpha: number;
   onStudentPhotoMapped: (studentId: string, ref: ImageRef) => void;
   onStudentNameMapped: (studentId: string, studentName: string) => void;
   onDone: () => void;
@@ -3113,6 +3157,7 @@ function GeneratingScreen({
     let i = 0;
 
     const run = async () => {
+      currentCardBgColor = blendWithWhite(cardBgColor, cardBgAlpha);
       const failedNames: string[] = [];
 
       for (const student of students) {
@@ -3333,6 +3378,20 @@ export const App = () => {
   const [studentSelectionOptions, setStudentSelectionOptions] = useState<Student[]>([]);
   const [studentSelectionLoading, setStudentSelectionLoading] = useState(false);
   const [replacingPhoto, setReplacingPhoto] = useState(false);
+  const [cardBgColor, setCardBgColor] = useState<string>(
+    () => localStorage.getItem(CARD_BG_COLOR_STORAGE_KEY) ?? "#ffffff",
+  );
+  const [cardBgAlpha, setCardBgAlpha] = useState<number>(
+    () => parseInt(localStorage.getItem(CARD_BG_ALPHA_STORAGE_KEY) ?? "100", 10),
+  );
+  const handleCardBgColorChange = (color: string) => {
+    setCardBgColor(color);
+    localStorage.setItem(CARD_BG_COLOR_STORAGE_KEY, color);
+  };
+  const handleCardBgAlphaChange = (alpha: number) => {
+    setCardBgAlpha(alpha);
+    localStorage.setItem(CARD_BG_ALPHA_STORAGE_KEY, String(alpha));
+  };
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [studentPhotoRefMap, setStudentPhotoRefMap] = useState<Record<string, string>>(() => {
     const stored = localStorage.getItem(STUDENT_PHOTO_REF_MAP_STORAGE_KEY);
@@ -3479,7 +3538,23 @@ export const App = () => {
   };
 
   const handleDisconnect = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    [
+      STORAGE_KEY,
+      BACKGROUND_STORAGE_KEY,
+      TAPES_STORAGE_KEY,
+      TEACHER_NAME_STORAGE_KEY,
+      REPORT_TITLE_STORAGE_KEY,
+      REPORT_FOOTER_STORAGE_KEY,
+      REPORT_CONTENT_STORAGE_KEY,
+      REPORT_FROM_DATE_STORAGE_KEY,
+      REPORT_TO_DATE_STORAGE_KEY,
+      HEADING_FONT_STORAGE_KEY,
+      BODY_FONT_STORAGE_KEY,
+      STUDENT_PHOTO_REF_MAP_STORAGE_KEY,
+      STUDENT_NAME_ID_MAP_STORAGE_KEY,
+      NIVEAU_HAND_REF_MAP_STORAGE_KEY,
+    ].forEach((key) => localStorage.removeItem(key));
+    niveauHandRefToColor.clear();
     setApiKey("");
     setAppState("idle");
     setActiveTab("settings");
@@ -3554,8 +3629,8 @@ export const App = () => {
         return next;
       }
 
-      if (prev.length >= 4) {
-        setTapesWarning("Je kunt maximaal 4 tapes selecteren.");
+      if (prev.length >= 10) {
+        setTapesWarning("Je kunt maximaal 10 tapes selecteren.");
         return prev;
       }
 
@@ -3975,6 +4050,7 @@ export const App = () => {
               teacherName={teacherName}
               onTeacherNameChange={handleTeacherNameChange}
               reportTitle={reportTitle}
+              canAddPage={canAddPage}
               onReportTitleChange={handleReportTitleChange}
               reportFooter={reportFooter}
               onReportFooterChange={handleReportFooterChange}
@@ -3988,6 +4064,10 @@ export const App = () => {
               onHeadingFontChange={setHeadingFont}
               bodyFont={bodyFont}
               onBodyFontChange={setBodyFont}
+              cardBgColor={cardBgColor}
+              onCardBgColorChange={handleCardBgColorChange}
+              cardBgAlpha={cardBgAlpha}
+              onCardBgAlphaChange={handleCardBgAlphaChange}
             />
           </TabPanel>
           <TabPanel id="generate">
@@ -4008,6 +4088,8 @@ export const App = () => {
                 selectedBackground={selectedBackground}
                 headingFont={headingFont}
                 bodyFont={bodyFont}
+                cardBgColor={cardBgColor}
+                cardBgAlpha={cardBgAlpha}
                 onStudentPhotoMapped={rememberStudentPhotoRef}
                 onStudentNameMapped={rememberStudentNameId}
                 onDone={handleDone}
@@ -4036,7 +4118,7 @@ export const App = () => {
               <Rows spacing="1u">
                 <Text variant="bold">Vervang geselecteerde leerlingfoto</Text>
                 <Text tone="tertiary">
-                  Klik eerst op een leerlingfoto in je Canva-document en kies daarna een nieuwe foto.
+                  Klik eerst op een leerlingfoto of niveauhandje in je Canva-document en kies daarna een nieuwe foto of kleur.
                 </Text>
                 <Button
                   variant="secondary"
@@ -4332,7 +4414,7 @@ export const App = () => {
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">Tapes kiezen</Text>
                   <Text tone="tertiary">
-                    Kies maximaal 4 tapes.
+                    Kies maximaal 10 tapes.
                   </Text>
                 </Rows>
 
