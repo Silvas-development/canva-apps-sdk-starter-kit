@@ -67,6 +67,12 @@ type StudentPhoto = {
   url: string;
 };
 
+type NiveauOption = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 type Template = {
   id: "rapport" | "portfolio" | "groei";
   emoji: string;
@@ -80,6 +86,13 @@ type AppState =
   | "done";
 
 type AppTab = "settings" | "generate" | "support";
+
+type PageExtraTexts = {
+  coloredLevelHandsTopText: string;
+  coloredLevelHandsBottomText: string;
+  studentGraphsTopText: string;
+  studentGraphsBottomText: string;
+};
 
 type ReportContentOptions = {
   photoPage: boolean;
@@ -132,6 +145,12 @@ type OntwikkelniveauRow = {
   niveaukleur: Record<string, string>;
 };
 
+type GroeigrafiekItem = {
+  leerlijn_id: number;
+  leerlijn: string;
+  chart: string; // data:image/png;base64,...
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "kleuterapp_api_key";
@@ -147,6 +166,7 @@ const HEADING_FONT_STORAGE_KEY = "kleuterapp_heading_font";
 const BODY_FONT_STORAGE_KEY = "kleuterapp_body_font";
 const STUDENT_PHOTO_REF_MAP_STORAGE_KEY = "kleuterapp_student_photo_ref_map";
 const STUDENT_NAME_ID_MAP_STORAGE_KEY = "kleuterapp_student_name_id_map";
+const NIVEAU_HAND_REF_MAP_STORAGE_KEY = "kleuterapp_niveau_hand_ref_map";
 const DEFAULT_REPORT_TITLE = "Kijk eens wat ik al kan!";
 const DEFAULT_REPORT_CONTENT_OPTIONS: ReportContentOptions = {
   photoPage: true,
@@ -166,6 +186,12 @@ const PAGE_H = Math.round(PAGE_W / A4_RATIO);
 const uploadedBackgrounds = new Map<string, Promise<ImageRef>>();
 const uploadedTapes = new Map<string, Promise<ImageRef>>();
 const uploadedNiveauHands = new Map<string, Promise<ImageRef>>();
+const niveauHandRefToColor = new Map<string, string>(
+  (() => { try { const s = localStorage.getItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY); return s ? JSON.parse(s) as [string, string][] : []; } catch { return []; } })()
+);
+function saveNiveauHandRefMap() {
+  try { localStorage.setItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY, JSON.stringify([...niveauHandRefToColor])); } catch {}
+}
 const NIVEAU_HANDS_BASE_URL =
   "https://login.mijnkleutergroep.nl/archon-content/plugins/mkg2/assets/rapporten/handjes";
 
@@ -286,11 +312,13 @@ type ApiAction =
   | "STUDENTS"
   | "BACKGROUNDS"
   | "TAPES"
+  | "NIVEAUS"
   | "LEERLINGPHOTOS"
   | "LOGO"
   | "NIVEAUHANDJES"
   | "DOELOMSCHRIJVING"
-  | "ONTWIKKELNIVEAUS";
+  | "ONTWIKKELNIVEAUS"
+  | "GROEIGRAFIEKEN";
 
 function buildApiUrl(
   action: ApiAction,
@@ -524,6 +552,10 @@ async function fetchTapes(apiKey: string): Promise<TapeOption[]> {
   return apiFetch("TAPES", apiKey) as Promise<TapeOption[]>;
 }
 
+async function fetchNiveaus(apiKey: string): Promise<NiveauOption[]> {
+  return apiFetch("NIVEAUS", apiKey) as Promise<NiveauOption[]>;
+}
+
 async function fetchStudentPhotos(
   apiKey: string,
   studentId: string,
@@ -663,6 +695,22 @@ async function fetchOntwikkelniveaus(
   }) as Promise<OntwikkelniveauRow[]>;
 }
 
+async function fetchGroeigrafieken(
+  apiKey: string,
+  studentId: string,
+  dateRange: ReportDateRange,
+): Promise<GroeigrafiekItem[]> {
+  const van = toUnixTimestamp(dateRange.fromDate);
+  const tot = toUnixTimestamp(dateRange.toDate, true);
+  if (van == null || tot == null) return [];
+  const result = await apiFetch("GROEIGRAFIEKEN", apiKey, {
+    leerling_id: studentId,
+    van,
+    tot,
+  });
+  return Array.isArray(result) ? (result as GroeigrafiekItem[]) : [];
+}
+
 async function fetchLogoUrl(apiKey: string): Promise<string | undefined> {
   const data = await apiFetch("LOGO", apiKey) as { url?: string };
   return data?.url;
@@ -739,6 +787,59 @@ function extractStudentIdFromSelectionContent(content: unknown): string | undefi
 
   const match = altText.match(/leerling_id:([^|\s]+)/i);
   return match?.[1];
+}
+
+function normalizeNiveauColor(color: string): string {
+  return color.trim().replace(/^#/, "").toLowerCase();
+}
+
+function extractNiveauColorFromSelectionContent(content: unknown): string | undefined {
+  if (!content || typeof content !== "object") {
+    return undefined;
+  }
+
+  const candidate = content as {
+    altText?: { text?: string } | string;
+    url?: string;
+    thumbnailUrl?: string;
+  };
+
+  // 1. Probeer altText
+  const altText =
+    typeof candidate.altText === "string"
+      ? candidate.altText
+      : candidate.altText?.text;
+  if (altText) {
+    const match = altText.match(/niveaukleur:([^|\s]+)/i);
+    if (match && match[1]) {
+      return normalizeNiveauColor(match[1]);
+    }
+  }
+
+  // 2. Probeer image url (NIVEAU_HANDS_BASE_URL)
+  const url = (candidate.url || candidate.thumbnailUrl || "") as string;
+  if (url && url.includes("/handjes/")) {
+    const m = url.match(/\/handjes\/([a-fA-F0-9]{3,8})\.png/i);
+    if (m && m[1]) {
+      return normalizeNiveauColor(m[1]);
+    }
+  }
+
+  const typed = content as { type?: string; name?: string };
+
+  // 3. Probeer type veld
+  if (typed.type && typeof typed.type === "string" && typed.type.toLowerCase().includes("handje")) {
+    const m = typed.type.match(/niveauhandje-([a-z]+)/i);
+    if (m) return normalizeNiveauColor(m[1]);
+  }
+
+  // 4. Probeer naam veld
+  if (typed.name && typeof typed.name === "string") {
+    const m = typed.name.match(/niveauhandje-([a-z]+)/i);
+    if (m) return normalizeNiveauColor(m[1]);
+  }
+
+  return undefined;
 }
 
 function imageRefKeys(ref: unknown): string[] {
@@ -892,13 +993,19 @@ async function uploadNiveauHand(url: string): Promise<ImageRef> {
     return existing;
   }
 
+  const colorMatch = url.match(/\/handjes\/([^.]+)\.png/i);
   const uploadPromise = upload({
     type: "image",
     mimeType: "image/png",
     url,
     thumbnailUrl: url,
     aiDisclosure: "none",
-  }).then((asset) => asset.ref);
+  }).then((asset) => {
+    if (colorMatch) {
+      try { niveauHandRefToColor.set(JSON.stringify(asset.ref), colorMatch[1] ?? ""); saveNiveauHandRefMap(); } catch {}
+    }
+    return asset.ref;
+  });
 
   uploadedNiveauHands.set(url, uploadPromise);
   return uploadPromise;
@@ -1179,6 +1286,8 @@ async function generateColoredLevelHandsPage(
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
   bodyFont: SelectedFont | null = null,
+  topText = "",
+  bottomText = "",
 ) {
   const background = await createPageBackground(selectedBackground);
   const niveauData = await fetchNiveauHandjes(apiKey, student.id, dateRange);
@@ -1202,7 +1311,7 @@ async function generateColoredLevelHandsPage(
   const dates = dateEntries.map((entry) => entry.date);
 
   const margin = 36;
-  const tableTop = 92;
+  const tableTop = topText.trim() ? 112 : 92;
   const headerHeight = 40;
   const vakRowHeight = 34;
   const lineRowHeight = 34;
@@ -1266,7 +1375,10 @@ async function generateColoredLevelHandsPage(
     });
   });
 
-  const maxBodyHeight = PAGE_H - tableTop - headerHeight - 80;
+  const textBoxH = 32;
+  const textBoxPadH = 14;
+  const textBoxPadV = 9;
+  const maxBodyHeight = PAGE_H - tableTop - headerHeight - (bottomText.trim() ? 110 : 80);
   const visibleRows: typeof renderRows = [];
   let usedBodyHeight = 0;
 
@@ -1292,8 +1404,18 @@ async function generateColoredLevelHandsPage(
       fontWeight: "bold" as const,
       ...fontProps(headingFont),
     },
-    createRectangleShape(tableTop, margin, tableWidth, tableHeight, "#ffffff"),
   ];
+
+  if (topText.trim()) {
+    const boxTop = 72;
+    elements.push(
+      createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
+      createRectangleShape(boxTop, margin, tableWidth, textBoxH, "#ffffff"),
+      { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
+    );
+  }
+
+  elements.push(createRectangleShape(tableTop, margin, tableWidth, tableHeight, "#ffffff"));
 
   if (visibleRows.length === 0) {
     elements.push(
@@ -1388,16 +1510,28 @@ async function generateColoredLevelHandsPage(
     cursorTop += lineRowHeight;
   }
 
+  let contentBottom = tableTop + tableHeight;
+
   if (visibleRows.length < renderRows.length) {
     elements.push({
       type: "text" as const,
-      top: tableTop + tableHeight + 10,
+      top: contentBottom + 10,
       left: margin,
       width: tableWidth,
       children: ["Niet alle ontwikkellijnen passen op deze pagina."],
       fontSize: 11,
       ...fontProps(bodyFont),
     });
+    contentBottom += 28;
+  }
+
+  if (bottomText.trim()) {
+    const boxTop = contentBottom + 16;
+    elements.push(
+      createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
+      createRectangleShape(boxTop, margin, tableWidth, textBoxH, "#ffffff"),
+      { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
+    );
   }
 
   await addPageWithRetry({
@@ -1719,6 +1853,129 @@ async function generateGoalLevelsPage(
     background,
     elements: [...elements, ...buildPageFooterElements(student.name)],
   });
+}
+
+async function generateGroeigrafiekenPage(
+  student: Student,
+  apiKey: string,
+  dateRange: ReportDateRange,
+  selectedBackground?: BackgroundOption,
+  headingFont: SelectedFont | null = null,
+  bodyFont: SelectedFont | null = null,
+  topText = "",
+  bottomText = "",
+) {
+  const charts = await fetchGroeigrafieken(apiKey, student.id, dateRange);
+  if (charts.length === 0) return;
+
+  const outerMargin = 58;
+  const colGap = 24;
+  const rowGap = 24;
+  const cardsPerRow = 2;
+  const cardW = Math.floor((PAGE_W - outerMargin * 2 - colGap * (cardsPerRow - 1)) / cardsPerRow);
+  const chartPad = 12;
+  const chartW = cardW - chartPad * 2;
+  const chartH = Math.round(chartW * 569 / 700);
+  const cardPadTop = 12;
+  const chartToLabel = 6;
+  const labelH = 18;
+  const cardPadBottom = 8;
+  const cardH = cardPadTop + chartH + chartToLabel + labelH + cardPadBottom;
+  const textBoxH = 32;
+  const textBoxPadH = 14;
+  const textBoxPadV = 9;
+  const cardsStartTop = topText.trim() ? 100 : 80;
+  const availH = PAGE_H - 44 - (bottomText.trim() ? 64 : 0) - cardsStartTop;
+  const rowsPerPage = Math.floor((availH + rowGap) / (cardH + rowGap));
+  const cardsPerPage = cardsPerRow * rowsPerPage;
+
+  for (let pageIndex = 0; pageIndex * cardsPerPage < charts.length; pageIndex++) {
+    const pageCharts = charts.slice(pageIndex * cardsPerPage, (pageIndex + 1) * cardsPerPage);
+    const background = await createPageBackground(selectedBackground);
+    const pageTitle = pageIndex === 0
+      ? `Groeigrafieken van ${student.name}`
+      : `Groeigrafieken van ${student.name} (vervolg)`;
+
+    const contentWidth = PAGE_W - outerMargin * 2;
+    const elements: any[] = [
+      {
+        type: "text" as const,
+        top: 36,
+        left: outerMargin,
+        width: contentWidth,
+        children: [pageTitle],
+        fontSize: 22,
+        fontWeight: "bold" as const,
+        ...fontProps(headingFont),
+      },
+    ];
+
+    if (topText.trim()) {
+      const boxTop = 62;
+      elements.push(
+        createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
+        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, "#ffffff"),
+        { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
+      );
+    }
+
+    for (let i = 0; i < pageCharts.length; i++) {
+      const chart = pageCharts[i];
+      if (!chart) continue;
+      const row = Math.floor(i / cardsPerRow);
+      const col = i % cardsPerRow;
+      const cardLeft = outerMargin + col * (cardW + colGap);
+      const cardTop = cardsStartTop + row * (cardH + rowGap);
+
+      const chartRef = await upload({
+        type: "image",
+        mimeType: "image/png",
+        url: chart.chart,
+        thumbnailUrl: chart.chart,
+        aiDisclosure: "none",
+      }).then((asset) => asset.ref);
+
+      elements.push(
+        createRectangleShape(cardTop + 4, cardLeft + 4, cardW, cardH, "#cccccc"),
+        createRectangleShape(cardTop, cardLeft, cardW, cardH, "#ffffff"),
+        {
+          type: "image",
+          ref: chartRef,
+          top: cardTop + cardPadTop,
+          left: cardLeft + chartPad,
+          width: chartW,
+          height: chartH,
+        },
+        {
+          type: "text" as const,
+          top: cardTop + cardPadTop + chartH + chartToLabel,
+          left: cardLeft + chartPad,
+          width: chartW,
+          children: [chart.leerlijn],
+          fontSize: 12,
+          textAlign: "center" as const,
+          ...fontProps(bodyFont),
+        },
+      );
+    }
+
+    if (bottomText.trim()) {
+      const numRows = Math.ceil(pageCharts.length / cardsPerRow);
+      const lastCardBottom = cardsStartTop + numRows * cardH + (numRows - 1) * rowGap;
+      const boxTop = lastCardBottom + 16;
+      elements.push(
+        createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
+        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, "#ffffff"),
+        { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
+      );
+    }
+
+    await addPageWithRetry({
+      title: pageIndex === 0 ? student.name : `${student.name} (grafieken ${pageIndex + 1})`,
+      background,
+      elements: [...elements, ...buildPageFooterElements(student.name)],
+    });
+  }
 }
 
 async function createPageBackground(selectedBackground?: BackgroundOption) {
@@ -2049,6 +2306,7 @@ async function generatePageForStudent(
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
   bodyFont: SelectedFont | null = null,
+  extraTexts: PageExtraTexts = { coloredLevelHandsTopText: "", coloredLevelHandsBottomText: "", studentGraphsTopText: "", studentGraphsBottomText: "" },
 ): Promise<ImageRef[]> {
   const mappedRefs: ImageRef[] = [];
   let ref: ImageRef | undefined;
@@ -2109,7 +2367,7 @@ async function generatePageForStudent(
     }
 
     if (reportContentOptions.coloredLevelHands) {
-      await generateColoredLevelHandsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont);
+      await generateColoredLevelHandsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.coloredLevelHandsTopText, extraTexts.coloredLevelHandsBottomText);
       await delay(THROTTLE_MS);
     }
 
@@ -2120,6 +2378,11 @@ async function generatePageForStudent(
 
     if (reportContentOptions.goalLevels) {
       await generateGoalLevelsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont);
+      await delay(THROTTLE_MS);
+    }
+
+    if (reportContentOptions.studentGraphs) {
+      await generateGroeigrafiekenPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.studentGraphsTopText, extraTexts.studentGraphsBottomText);
       await delay(THROTTLE_MS);
     }
   }
@@ -2226,11 +2489,11 @@ function SettingsScreen({
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Onder rapport</Text>
+        <Text variant="bold">Tekst onder rapport</Text>
         <MultilineInput
           value={reportFooter}
           onChange={onReportFooterChange}
-          placeholder="Tekst die onderaan de pagina in een wit kader verschijnt"
+          placeholder="Tekst die onderaan de 1e pagina in een wit kader verschijnt (optioneel)"
           minRows={3}
         />
       </Rows>
@@ -2309,43 +2572,50 @@ function SettingsScreen({
 }
 
 // 2. Genereren
-function GenerateScreen({
-  apiKey,
-  onGenerate,
-  generationError,
-  onOpenStudentPhotoPicker,
-  canReplaceSelectedPhoto,
-  isOpeningStudentPhotoPicker,
-  reportContentOptions,
-  onReportContentOptionChange,
-  canAddPage,
-  reportDateRange,
-  onReportDateRangeChange,
-}: {
+type GenerateScreenProps = {
   apiKey: string;
-  onGenerate: (students: Student[], template: Template["id"]) => void;
+  onGenerate: (students: Student[], template: Template["id"], extraTexts: PageExtraTexts) => void;
   generationError?: string;
-  onOpenStudentPhotoPicker: () => void;
-  canReplaceSelectedPhoto: boolean;
-  isOpeningStudentPhotoPicker: boolean;
+
   reportContentOptions: ReportContentOptions;
   onReportContentOptionChange: (key: keyof ReportContentOptions, value: boolean) => void;
   canAddPage: boolean;
   reportDateRange: ReportDateRange;
   onReportDateRangeChange: (next: ReportDateRange) => void;
-}) {
+};
+
+function GenerateScreen({
+  apiKey,
+  onGenerate,
+  generationError,
+  reportContentOptions,
+  onReportContentOptionChange,
+  canAddPage,
+  reportDateRange,
+  onReportDateRangeChange,
+}: GenerateScreenProps) {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [groupStudents, setGroupStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [selectionMode, setSelectionMode] = useState<"group" | "student">("group");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template["id"]>("rapport");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [coloredLevelHandsTopText, setColoredLevelHandsTopText] = useState("");
+  const [coloredLevelHandsBottomText, setColoredLevelHandsBottomText] = useState("");
+  const [studentGraphsTopText, setStudentGraphsTopText] = useState("");
+  const [studentGraphsBottomText, setStudentGraphsBottomText] = useState("");
 
   useEffect(() => {
     if (!apiKey) {
       setGroups([]);
-      setStudents([]);
+      setGroupStudents([]);
+      setAllStudents([]);
+      setSelectionMode("group");
       setSelectedGroup("");
+      setSelectedStudentId("");
       setLoadError("");
       setLoading(false);
       return;
@@ -2353,15 +2623,33 @@ function GenerateScreen({
 
     const load = async () => {
       setLoading(true);
+      setLoadError("");
       try {
-        const groupData = await apiFetch("GROUPS", apiKey);
+        const [groupData, allStudentsData] = await Promise.all([
+          apiFetch("GROUPS", apiKey) as Promise<Group[]>,
+          fetchStudents(apiKey, "0"),
+        ]);
+
         setGroups(groupData);
-        if (groupData.length > 0) {
-          setSelectedGroup(groupData[0].id);
-          const studentData = await fetchStudents(apiKey, groupData[0].id);
-          setStudents(studentData);
+        setAllStudents(allStudentsData);
+
+        const firstStudent = allStudentsData[0];
+        if (firstStudent) {
+          setSelectedStudentId((current) =>
+            current && allStudentsData.some((student) => student.id === current)
+              ? current
+              : firstStudent.id,
+          );
         } else {
-          setStudents([]);
+          setSelectedStudentId("");
+        }
+
+        const firstGroup = groupData[0];
+        if (firstGroup) {
+          setSelectedGroup(firstGroup.id);
+        } else {
+          setSelectedGroup("");
+          setGroupStudents([]);
         }
       } catch {
         setLoadError("Kon gegevens niet ophalen. Controleer je verbinding.");
@@ -2372,7 +2660,42 @@ function GenerateScreen({
     load();
   }, [apiKey]);
 
-  const studentsInGroup = students.filter((s) => s.group === selectedGroup);
+  useEffect(() => {
+    if (!apiKey || !selectedGroup) {
+      setGroupStudents([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadGroupStudents = async () => {
+      try {
+        const studentData = await fetchStudents(apiKey, selectedGroup);
+        if (!cancelled) {
+          setGroupStudents(studentData);
+        }
+      } catch {
+        if (!cancelled) {
+          setGroupStudents([]);
+          setLoadError("Kon leerlingen voor deze groep niet ophalen.");
+        }
+      }
+    };
+
+    loadGroupStudents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, selectedGroup]);
+
+  const selectedStudent = allStudents.find((student) => student.id === selectedStudentId);
+  const studentsToGenerate =
+    selectionMode === "student"
+      ? selectedStudent
+        ? [selectedStudent]
+        : []
+      : groupStudents;
   const visibleTemplates = TEMPLATES.filter((template) =>
     AVAILABLE_TEMPLATES.includes(template.id),
   );
@@ -2383,7 +2706,7 @@ function GenerateScreen({
       <Rows spacing="2u">
         <Text variant="bold" size="large">Genereren</Text>
         <Text tone="tertiary">
-          Koppel eerst je account in het tabje Instellingen om pagina's te
+          Koppel eerst je account in het tabje Aanpassen om pagina's te
           kunnen genereren.
         </Text>
       </Rows>
@@ -2401,16 +2724,51 @@ function GenerateScreen({
 
       {/* Stap 1 — Groep */}
       <Rows spacing="1u">
-        <Text variant="bold">① Kies een groep</Text>
+        <Text variant="bold">① Kies wat je wilt genereren</Text>
         <RadioGroup
-          value={selectedGroup}
-          onChange={setSelectedGroup}
-          options={groups.map((g) => ({
-            value: g.id,
-            label: g.name,
-            description: `${g.studentCount} leerlingen`,
-          }))}
+          value={selectionMode}
+          onChange={(value) => setSelectionMode(value as "group" | "student")}
+          options={[
+            {
+              value: "group",
+              label: "Een hele groep",
+              description: "Genereer voor alle leerlingen in 1 groep",
+            },
+            {
+              value: "student",
+              label: "Een individuele leerling",
+              description: "Genereer 1 enkel rapport",
+            },
+          ]}
         />
+
+        {selectionMode === "group" ? (
+          <>
+            <Text variant="bold">Kies een groep</Text>
+            <RadioGroup
+              value={selectedGroup}
+              onChange={setSelectedGroup}
+              options={groups.map((g) => ({
+                value: g.id,
+                label: g.name,
+                description: `${g.studentCount} leerlingen`,
+              }))}
+            />
+          </>
+        ) : (
+          <>
+            <Text variant="bold">Kies een leerling</Text>
+            <RadioGroup
+              value={selectedStudentId}
+              onChange={setSelectedStudentId}
+              options={allStudents.map((student) => ({
+                value: student.id,
+                label: student.name,
+                description: student.group,
+              }))}
+            />
+          </>
+        )}
       </Rows>
 
       {/* Stap 2 — Datums */}
@@ -2488,7 +2846,8 @@ function GenerateScreen({
             </Box>
           ))}
         </Rows>
-        <Rows spacing="1u" style={{marginTop: 12}}>
+        <Box paddingTop="2u">
+        <Rows spacing="1u">
           <Text variant="bold">Inhoud rapport per leerling</Text>
           <Checkbox
             label="Voorpagina (foto pagina)"
@@ -2516,6 +2875,22 @@ function GenerateScreen({
               onReportContentOptionChange("coloredLevelHands", checked)
             }
           />
+          {reportContentOptions.coloredLevelHands && (
+            <Box paddingStart="2u">
+              <Rows spacing="1u">
+                <MultilineInput
+                  value={coloredLevelHandsTopText}
+                  onChange={setColoredLevelHandsTopText}
+                  placeholder="Tekst boven de pagina (optioneel)"
+                />
+                <MultilineInput
+                  value={coloredLevelHandsBottomText}
+                  onChange={setColoredLevelHandsBottomText}
+                  placeholder="Tekst onder de pagina (optioneel)"
+                />
+              </Rows>
+            </Box>
+          )}
           <Checkbox
             label="Leerlinggrafieken"
             checked={reportContentOptions.studentGraphs}
@@ -2523,6 +2898,22 @@ function GenerateScreen({
               onReportContentOptionChange("studentGraphs", checked)
             }
           />
+          {reportContentOptions.studentGraphs && (
+            <Box paddingStart="2u">
+              <Rows spacing="1u">
+                <MultilineInput
+                  value={studentGraphsTopText}
+                  onChange={setStudentGraphsTopText}
+                  placeholder="Tekst boven de pagina (optioneel)"
+                />
+                <MultilineInput
+                  value={studentGraphsBottomText}
+                  onChange={setStudentGraphsBottomText}
+                  placeholder="Tekst onder de pagina (optioneel)"
+                />
+              </Rows>
+            </Box>
+          )}
           <Checkbox
             label="ik-tekening"
             checked={reportContentOptions.selfDrawing}
@@ -2545,6 +2936,7 @@ function GenerateScreen({
             }
           />
         </Rows>
+        </Box>
       </Rows>
 
       {/* Stap 4 — Genereren */}
@@ -2561,38 +2953,33 @@ function GenerateScreen({
             Kies eerst een van- en totdatum.
           </Text>
         )}
-        {studentsInGroup.length === 0 ? (
-          <Text tone="tertiary">Geen leerlingen gevonden in deze groep.</Text>
+        {studentsToGenerate.length === 0 ? (
+          <Text tone="tertiary">
+            {selectionMode === "student"
+              ? "Geen leerling geselecteerd."
+              : "Geen leerlingen gevonden in deze groep."}
+          </Text>
         ) : (
           <Button
             variant="primary"
-            onClick={() => onGenerate(studentsInGroup, selectedTemplate)}
+            onClick={() => onGenerate(studentsToGenerate, selectedTemplate, {
+              coloredLevelHandsTopText,
+              coloredLevelHandsBottomText,
+              studentGraphsTopText,
+              studentGraphsBottomText,
+            })}
             disabled={
               !canAddPage || !reportDateRange.fromDate || !reportDateRange.toDate
             }
             stretch
           >
-            Maak {studentsInGroup.length} pagina's aan →
+            {selectionMode === "student"
+              ? "Maak 1 rapport aan →"
+              : `Maak ${studentsToGenerate.length} rapporten aan →`}
           </Button>
         )}
       </Rows>
 
-      <Rows spacing="1u">
-        <Text variant="bold">⑤ Vervang geselecteerde leerlingfoto</Text>
-        <Text tone="tertiary">
-          Klik eerst op een leerlingfoto in je Canva-document en kies daarna een
-          nieuwe foto.
-        </Text>
-        <Button
-          variant="secondary"
-          onClick={onOpenStudentPhotoPicker}
-          stretch
-          disabled={!canReplaceSelectedPhoto}
-          loading={isOpeningStudentPhotoPicker}
-        >
-          Kies vervangfoto
-        </Button>
-      </Rows>
     </Rows>
   );
 }
@@ -2632,19 +3019,12 @@ function SupportScreen({
         <Text variant="bold" size="large">Informatie & Support</Text>
         <Text>
           Gebruik deze Canva-plugin om leerlingpagina's te genereren vanuit
-          MijnKleutergroep.
+          MijnKleutergroep.          
         </Text>
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Werkwijze</Text>
-        <Text>1. Koppel je account hieronder.</Text>
-        <Text>2. Kies in Genereren een groep en template.</Text>
-        <Text>3. Laat Canva de pagina's toevoegen aan je huidige document.</Text>
-      </Rows>
-
-      <Rows spacing="1u">
-        <Text variant="bold">Account koppelen</Text>
+        <Text variant="bold">MijnKleutergroep account koppelen</Text>
         {!apiKey && (
           <>
             <Rows spacing="1u">
@@ -2678,18 +3058,6 @@ function SupportScreen({
           </Button>
         )}
       </Rows>
-
-      <Rows spacing="1u">
-        <Text variant="bold">Support</Text>
-        <Text>
-          Controleer eerst of je document het juiste formaat heeft en of je
-          koppelcode nog geldig is.
-        </Text>
-        <Text>
-          Bij problemen met laden of genereren kun je de plugin herladen in
-          Canva en daarna opnieuw proberen.
-        </Text>
-      </Rows>
     </Rows>
   );
 }
@@ -2705,6 +3073,7 @@ function GeneratingScreen({
   reportFooter,
   selectedTapes,
   reportContentOptions,
+  extraTexts,
   logoRef,
   logoAspectRatio,
   selectedBackground,
@@ -2724,6 +3093,7 @@ function GeneratingScreen({
   reportFooter: string;
   selectedTapes: TapeOption[];
   reportContentOptions: ReportContentOptions;
+  extraTexts: PageExtraTexts;
   logoRef: ImageRef | undefined;
   logoAspectRatio: number | undefined;
   selectedBackground?: BackgroundOption;
@@ -2763,6 +3133,7 @@ function GeneratingScreen({
             selectedBackground,
             headingFont,
             bodyFont,
+            extraTexts,
           );
           refs.forEach((ref) => onStudentPhotoMapped(student.id, ref));
           onStudentNameMapped(student.id, student.name);
@@ -2868,6 +3239,7 @@ function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
 
 export const App = () => {
   const imageSelection = useSelection("image");
+  const imageSelectionCount = imageSelection?.count ?? 0;
   const isSupported = useFeatureSupport();
   const canAddPage = isSupported(addPage);
   const [apiKey, setApiKey] = useState<string>(() =>
@@ -2880,6 +3252,7 @@ export const App = () => {
   const [generatePayload, setGeneratePayload] = useState<{
     students: Student[];
     templateId: Template["id"];
+    extraTexts: PageExtraTexts;
   } | null>(null);
   const [reportDateRange, setReportDateRange] = useState<ReportDateRange>(() =>
     getStoredReportDateRange(),
@@ -2951,6 +3324,12 @@ export const App = () => {
   const [studentPhotos, setStudentPhotos] = useState<StudentPhoto[]>([]);
   const [studentPhotosLoading, setStudentPhotosLoading] = useState(false);
   const [studentPhotosError, setStudentPhotosError] = useState("");
+  const [isNiveauModalOpen, setIsNiveauModalOpen] = useState(false);
+  const [niveauOptions, setNiveauOptions] = useState<NiveauOption[]>([]);
+  const [niveauOptionsLoading, setNiveauOptionsLoading] = useState(false);
+  const [niveauOptionsError, setNiveauOptionsError] = useState("");
+  const [selectedNiveauColor, setSelectedNiveauColor] = useState<string>("");
+  const [replacingNiveauHand, setReplacingNiveauHand] = useState(false);
   const [studentSelectionOptions, setStudentSelectionOptions] = useState<Student[]>([]);
   const [studentSelectionLoading, setStudentSelectionLoading] = useState(false);
   const [replacingPhoto, setReplacingPhoto] = useState(false);
@@ -2980,6 +3359,7 @@ export const App = () => {
     }
   });
   const lastAutoHandledSelection = React.useRef("");
+  const isAutoHandlingSelection = React.useRef(false);
 
   // Fetch and upload school logo once the API key is available
   useEffect(() => {
@@ -3352,29 +3732,129 @@ export const App = () => {
     }
   };
 
-  useEffect(() => {
-    if (imageSelection.count === 0) {
-      lastAutoHandledSelection.current = "";
-    }
-  }, [imageSelection.count]);
-
-  useEffect(() => {
-    if (!apiKey || imageSelection.count === 0 || appState === "generating") {
+  const openNiveauHandPicker = async (knownColor?: string) => {
+    if (!apiKey) {
+      setNiveauOptions([]);
+      setNiveauOptionsError("Koppel eerst je account om niveaus op te halen.");
+      setIsNiveauModalOpen(true);
       return;
     }
 
-    let cancelled = false;
+    if (imageSelection.count === 0) {
+      setNiveauOptions([]);
+      setNiveauOptionsError("Selecteer eerst een gekleurd niveauhandje in je Canva-document.");
+      setIsNiveauModalOpen(true);
+      return;
+    }
 
-    const autoOpen = async () => {
+    setNiveauOptionsLoading(true);
+    setNiveauOptionsError("");
+
+    try {
+      let initialColor = knownColor;
+
+      if (!initialColor) {
+        const draft = await imageSelection.read();
+        const content = draft.contents[0];
+
+        // 1. Ref→kleur map (werkt binnen dezelfde sessie)
+        if (content?.ref) {
+          try { initialColor = niveauHandRefToColor.get(JSON.stringify(content.ref)); } catch {}
+        }
+
+        // 2. Metadata: altText / url / type / naam
+        if (!initialColor) {
+          initialColor = extractNiveauColorFromSelectionContent(content);
+        }
+      }
+
+      const options = await fetchNiveaus(apiKey);
+      setSelectedNiveauColor(initialColor ? normalizeNiveauColor(initialColor) : "");
+      setNiveauOptions(options);
+      if (!initialColor) {
+        setNiveauOptionsError("Kon de huidige kleur niet bepalen — kies handmatig een kleur.");
+      }
+      setIsNiveauModalOpen(true);
+    } catch {
+      setNiveauOptions([]);
+      setSelectedNiveauColor("");
+      setNiveauOptionsError("Kon niveaus niet ophalen.");
+      setIsNiveauModalOpen(true);
+    } finally {
+      setNiveauOptionsLoading(false);
+    }
+  };
+
+  const handleNiveauHandReplace = async (color: string) => {
+    setReplacingNiveauHand(true);
+    setNiveauOptionsError("");
+    try {
+      const normalizedColor = normalizeNiveauColor(color);
+      const newRef = await uploadNiveauHand(
+        buildNiveauHandImageUrl(normalizedColor),
+      );
+
+      const draft = await imageSelection.read();
+      if (draft.contents.length === 0) {
+        setNiveauOptionsError("Selecteer opnieuw een niveauhandje in je document.");
+        return;
+      }
+
+      draft.contents.forEach((item) => {
+        item.ref = newRef;
+        (item as {
+          altText?: { text: string; decorative: boolean };
+        }).altText = {
+          text: `niveaukleur:${normalizedColor}`,
+          decorative: true,
+        };
+      });
+
+      await draft.save();
+      setSelectedNiveauColor(normalizedColor);
+      setIsNiveauModalOpen(false);
+    } catch {
+      setNiveauOptionsError("Kon de kleur van dit niveauhandje niet wijzigen.");
+    } finally {
+      setReplacingNiveauHand(false);
+    }
+  };
+
+  useEffect(() => {
+    if (imageSelectionCount === 0) {
+      lastAutoHandledSelection.current = "";
+    }
+  }, [imageSelectionCount]);
+
+  useEffect(() => {
+    const autoHandleSelection = async () => {
+      if (
+        !apiKey ||
+        appState === "generating" ||
+        imageSelectionCount === 0 ||
+        isPhotoModalOpen ||
+        isNiveauModalOpen ||
+        replacingPhoto ||
+        replacingNiveauHand ||
+        isAutoHandlingSelection.current
+      ) {
+        return;
+      }
+
+      isAutoHandlingSelection.current = true;
       try {
         const draft = await imageSelection.read();
-        if (cancelled) {
+        const content = draft.contents[0] as
+          | {
+              altText?: { text?: string } | string;
+              ref?: unknown;
+            }
+          | undefined;
+
+        if (!content) {
           return;
         }
-        const content = draft.contents[0] as {
-          altText?: { text?: string } | string;
-          ref?: unknown;
-        };
+
         const marker =
           typeof content.altText === "string"
             ? content.altText
@@ -3384,22 +3864,47 @@ export const App = () => {
           return;
         }
         lastAutoHandledSelection.current = selectionKey;
-        await openStudentPhotoPicker();
+
+        const selectedNiveauColor = extractNiveauColorFromSelectionContent(content);
+        if (selectedNiveauColor) {
+          await openNiveauHandPicker(selectedNiveauColor);
+          return;
+        }
+
+        const selectedStudentId = resolveStudentIdFromSelectedContent(content);
+        if (selectedStudentId) {
+          await openStudentPhotoPicker();
+        }
       } catch {
         // Geen extra melding nodig; handmatige knop blijft beschikbaar.
+      } finally {
+        isAutoHandlingSelection.current = false;
       }
     };
 
-    autoOpen();
+    void autoHandleSelection();
+    const intervalId = window.setInterval(() => {
+      void autoHandleSelection();
+    }, 700);
 
     return () => {
-      cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, [apiKey, imageSelection.count, appState]);
+  }, [
+    apiKey,
+    appState,
+    imageSelectionCount,
+    imageSelection,
+    isPhotoModalOpen,
+    isNiveauModalOpen,
+    replacingPhoto,
+    replacingNiveauHand,
+  ]);
 
   const handleGenerate = async (
     students: Student[],
     templateId: Template["id"],
+    extraTexts: PageExtraTexts,
   ) => {
     if (!canAddPage) {
       setGenerationError(
@@ -3427,7 +3932,7 @@ export const App = () => {
       setGenerationError("");
     }
 
-    setGeneratePayload({ students, templateId });
+    setGeneratePayload({ students, templateId, extraTexts });
     setAppState("generating");
     setActiveTab("generate");
   };
@@ -3445,7 +3950,7 @@ export const App = () => {
               active={activeTab === "settings"}
               onClick={() => setActiveTab("settings")}
             >
-              Instellingen
+              Layout
             </Tab>
             <Tab
               id="generate"
@@ -3459,7 +3964,7 @@ export const App = () => {
               active={activeTab === "support"}
               onClick={() => setActiveTab("support")}
             >
-              Informatie
+              Aanpassen
             </Tab>
           </TabList>
         </Box>
@@ -3497,6 +4002,7 @@ export const App = () => {
                 reportFooter={reportFooter}
                 selectedTapes={selectedTapes}
                 reportContentOptions={reportContentOptions}
+                extraTexts={generatePayload.extraTexts}
                 logoRef={logoRef}
                 logoAspectRatio={logoAspectRatio}
                 selectedBackground={selectedBackground}
@@ -3517,9 +4023,6 @@ export const App = () => {
                 apiKey={apiKey}
                 onGenerate={handleGenerate}
                 generationError={generationError}
-                onOpenStudentPhotoPicker={openStudentPhotoPicker}
-                canReplaceSelectedPhoto={imageSelection.count > 0}
-                isOpeningStudentPhotoPicker={studentPhotosLoading}
                 reportContentOptions={reportContentOptions}
                 onReportContentOptionChange={handleReportContentOptionChange}
                 canAddPage={canAddPage}
@@ -3529,11 +4032,36 @@ export const App = () => {
             )}
           </TabPanel>
           <TabPanel id="support">
-            <SupportScreen
-              apiKey={apiKey}
-              onConnected={handleConnected}
-              onDisconnect={handleDisconnect}
-            />
+            <Rows spacing="3u">
+              <Rows spacing="1u">
+                <Text variant="bold">Vervang geselecteerde leerlingfoto</Text>
+                <Text tone="tertiary">
+                  Klik eerst op een leerlingfoto in je Canva-document en kies daarna een nieuwe foto.
+                </Text>
+                <Button
+                  variant="secondary"
+                  onClick={openStudentPhotoPicker}
+                  stretch
+                  disabled={imageSelectionCount === 0}
+                  loading={studentPhotosLoading}
+                >
+                  Kies vervangfoto
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => openNiveauHandPicker()}
+                  stretch
+                  disabled={imageSelectionCount === 0}
+                >
+                  Kleur geselecteerd handje wijzigen
+                </Button>
+              </Rows>
+              <SupportScreen
+                apiKey={apiKey}
+                onConnected={handleConnected}
+                onDisconnect={handleDisconnect}
+              />
+            </Rows>
           </TabPanel>
         </TabPanels>
 
@@ -3688,6 +4216,86 @@ export const App = () => {
                   onClick={() => setIsPhotoModalOpen(false)}
                   stretch
                   disabled={replacingPhoto}
+                >
+                  Sluiten
+                </Button>
+              </Rows>
+            </div>
+          </div>
+        )}
+
+        {isNiveauModalOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(17, 24, 39, 0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 720,
+                maxHeight: "80vh",
+                overflow: "auto",
+                background: "white",
+                borderRadius: 16,
+                padding: 20,
+              }}
+            >
+              <Rows spacing="2u">
+                <Rows spacing="1u">
+                  <Text variant="bold" size="large">Niveauhandje kleur wijzigen</Text>
+                  <Text tone="tertiary">
+                    Klik op een kleur om het geselecteerde niveauhandje in je document te vervangen.
+                  </Text>
+                </Rows>
+
+                {niveauOptionsLoading ? (
+                  <LoadingIndicator />
+                ) : (
+                  <>
+                    {niveauOptionsError && (
+                      <Alert tone={niveauOptions.length > 0 ? "info" : "critical"}>{niveauOptionsError}</Alert>
+                    )}
+                    {niveauOptions.length > 0 && (
+                      <Grid columns={2} spacing="1.5u">
+                        {niveauOptions.map((niveau) => {
+                          const normalizedColor = normalizeNiveauColor(niveau.color);
+                          const handUrl = buildNiveauHandImageUrl(normalizedColor);
+
+                          return (
+                            <Box key={niveau.id}>
+                              <Rows spacing="1u">
+                                <ImageCard
+                                  ariaLabel={niveau.name}
+                                  alt={niveau.name}
+                                  thumbnailUrl={handUrl}
+                                  onClick={() => handleNiveauHandReplace(niveau.color)}
+                                  selectable={true}
+                                  selected={selectedNiveauColor === normalizedColor}
+                                  borderRadius="standard"
+                                />
+                                <Text>{niveau.name}</Text>
+                              </Rows>
+                            </Box>
+                          );
+                        })}
+                      </Grid>
+                    )}
+                  </>
+                )}
+
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsNiveauModalOpen(false)}
+                  stretch
+                  disabled={replacingNiveauHand}
                 >
                   Sluiten
                 </Button>
