@@ -1,4 +1,5 @@
 import { AppUiProvider } from "@canva/app-ui-kit";
+import { AppI18nProvider } from "@canva/app-i18n-kit";
 import type { DesignEditorIntent } from "@canva/intents/design";
 import { prepareDesignEditor } from "@canva/intents/design";
 import { createRoot } from "react-dom/client";
@@ -9,9 +10,11 @@ async function render() {
 	const root = createRoot(document.getElementById("root") as Element);
 
 	root.render(
-		<AppUiProvider>
-			<App />
-		</AppUiProvider>,
+		<AppI18nProvider>
+			<AppUiProvider>
+				<App />
+			</AppUiProvider>
+		</AppI18nProvider>,
 	);
 }
 

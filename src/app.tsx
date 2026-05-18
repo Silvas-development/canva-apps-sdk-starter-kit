@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import { addPage, getDesignMetadata, openDesign } from "@canva/design";
 import { upload, requestFontSelection } from "@canva/asset";
 import { useSelection, useFeatureSupport } from "@canva/app-hooks";
@@ -171,7 +172,7 @@ const STUDENT_NAME_ID_MAP_STORAGE_KEY = "kleuterapp_student_name_id_map";
 const NIVEAU_HAND_REF_MAP_STORAGE_KEY = "kleuterapp_niveau_hand_ref_map";
 const CARD_BG_COLOR_STORAGE_KEY = "kleuterapp_card_bg_color";
 const CARD_BG_ALPHA_STORAGE_KEY = "kleuterapp_card_bg_alpha";
-const DEFAULT_REPORT_TITLE = "Kijk eens wat ik al kan!";
+const DEFAULT_REPORT_TITLE = "Look what I can already do!";
 const DEFAULT_REPORT_CONTENT_OPTIONS: ReportContentOptions = {
   photoPage: true,
   extraPhotosPage: false,
@@ -214,20 +215,20 @@ const TEMPLATES: Template[] = [
   {
     id: "rapport",
     emoji: "📄",
-    label: "Maatwerkrapport",
-    description: "Foto + naam + observaties per domein",
+    label: "Custom report",
+    description: "Photo + name + observations per domain",
   },
   {
     id: "portfolio",
     emoji: "🖼️",
     label: "Portfolio",
-    description: "Grote foto met laatste notitie",
+    description: "Large photo with latest note",
   },
   {
     id: "groei",
     emoji: "📈",
-    label: "Groeioverzicht",
-    description: "Tabel met scores per domein",
+    label: "Growth overview",
+    description: "Table with scores per domain",
   },
 ];
 
@@ -2480,39 +2481,37 @@ function SettingsScreen({
   cardBgAlpha: number;
   onCardBgAlphaChange: (alpha: number) => void;
 }) {
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const connect = async () => {
-    const key = input.trim();
-    if (!key) return;
-    setLoading(true);
-    setError("");
-    try {
-      await apiFetch("VALIDATE", key);
-      localStorage.setItem(STORAGE_KEY, key);
-      onConnected(key);
-    } catch {
-      setError("Ongeldige koppelcode. Controleer of je de juiste code hebt gekopieerd vanuit de app.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const intl = useIntl();
 
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
-        <Text variant="bold">Leerkrachtnaam</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.teacherName.label"
+            defaultMessage="Teacher name"
+            description="Label for the teacher name input field in the Settings screen"
+          />
+        </Text>
         <TextInput
           value={teacherName}
           onChange={onTeacherNameChange}
-          placeholder="Bijv. Mevrouw Jansen"
+          placeholder={intl.formatMessage({
+            id: "settings.teacherName.placeholder",
+            defaultMessage: "E.g. Ms. Jansen",
+            description: "Placeholder for the teacher name input, showing an example name",
+          })}
         />
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Titel rapport</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.reportTitle.label"
+            defaultMessage="Report title"
+            description="Label for the report title input field"
+          />
+        </Text>
         <TextInput
           value={reportTitle}
           onChange={onReportTitleChange}
@@ -2521,41 +2520,99 @@ function SettingsScreen({
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Tekst onder rapport</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.reportFooter.label"
+            defaultMessage="Text below report"
+            description="Label for the footer text field that appears below the report"
+          />
+        </Text>
         <MultilineInput
           value={reportFooter}
           onChange={onReportFooterChange}
-          placeholder="Tekst die onderaan de 1e pagina in een wit kader verschijnt (optioneel)"
+          placeholder={intl.formatMessage({
+            id: "settings.reportFooter.placeholder",
+            defaultMessage: "Text that appears at the bottom of the 1st page in a white box (optional)",
+            description: "Placeholder for the report footer text input",
+          })}
           minRows={3}
         />
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Achtergrond instellen</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.background.label"
+            defaultMessage="Set background"
+            description="Label for the background picker section in Settings"
+          />
+        </Text>
         <Text tone="tertiary">
           {selectedBackground
-            ? `Geselecteerd: ${selectedBackground.name}`
-            : "Nog geen achtergrond geselecteerd."}
+            ? intl.formatMessage(
+                {
+                  id: "settings.background.selected",
+                  defaultMessage: "Selected: {name}",
+                  description: "Shows the name of the currently selected background",
+                },
+                { name: selectedBackground.name },
+              )
+            : intl.formatMessage({
+                id: "settings.background.none",
+                defaultMessage: "No background selected yet.",
+                description: "Shown when no background has been chosen",
+              })}
         </Text>
         <Button variant="secondary" onClick={onOpenBackgroundPicker} stretch>
-          Achtergrond instellen
+          {intl.formatMessage({
+            id: "settings.background.button",
+            defaultMessage: "Set background",
+            description: "Button to open the background picker",
+          })}
         </Button>
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Tapes kiezen</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.tapes.label"
+            defaultMessage="Choose tapes"
+            description="Label for the tape picker section in Settings"
+          />
+        </Text>
         <Text tone="tertiary">
           {selectedTapes.length > 0
-            ? `${selectedTapes.length} van 10 geselecteerd`
-            : "Nog geen tapes geselecteerd."}
+            ? intl.formatMessage(
+                {
+                  id: "settings.tapes.selected",
+                  defaultMessage: "{count} of 10 selected",
+                  description: "Shows how many tapes are currently selected out of the maximum of 10",
+                },
+                { count: selectedTapes.length },
+              )
+            : intl.formatMessage({
+                id: "settings.tapes.none",
+                defaultMessage: "No tapes selected yet.",
+                description: "Shown when no tapes have been chosen",
+              })}
         </Text>
         <Button variant="secondary" onClick={onOpenTapePicker} stretch>
-          Tapes kiezen
+          {intl.formatMessage({
+            id: "settings.tapes.button",
+            defaultMessage: "Choose tapes",
+            description: "Button to open the tape picker",
+          })}
         </Button>
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Font voor koppen</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.headingFont.label"
+            defaultMessage="Font for headings"
+            description="Label for the heading font picker in Settings"
+          />
+        </Text>
         <Button
           variant="secondary"
           onClick={async () => {
@@ -2567,17 +2624,33 @@ function SettingsScreen({
             }
           }}
         >
-          {headingFont ? headingFont.name : "Standaard (klik om te kiezen)"}
+          {headingFont
+            ? headingFont.name
+            : intl.formatMessage({
+                id: "settings.font.default",
+                defaultMessage: "Default (click to choose)",
+                description: "Button label when no custom font has been selected yet",
+              })}
         </Button>
         {headingFont && (
           <Button variant="secondary" onClick={() => onHeadingFontChange(null)}>
-            Wissen
+            {intl.formatMessage({
+              id: "settings.font.clear",
+              defaultMessage: "Clear",
+              description: "Button to remove the currently selected font and revert to default",
+            })}
           </Button>
         )}
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Font voor teksten</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.bodyFont.label"
+            defaultMessage="Font for body text"
+            description="Label for the body text font picker in Settings"
+          />
+        </Text>
         <Button
           variant="secondary"
           onClick={async () => {
@@ -2589,24 +2662,55 @@ function SettingsScreen({
             }
           }}
         >
-          {bodyFont ? bodyFont.name : "Standaard (klik om te kiezen)"}
+          {bodyFont
+            ? bodyFont.name
+            : intl.formatMessage({
+                id: "settings.font.default",
+                defaultMessage: "Default (click to choose)",
+                description: "Button label when no custom font has been selected yet",
+              })}
         </Button>
         {bodyFont && (
           <Button variant="secondary" onClick={() => onBodyFontChange(null)}>
-            Wissen
+            {intl.formatMessage({
+              id: "settings.font.clear",
+              defaultMessage: "Clear",
+              description: "Button to remove the currently selected font and revert to default",
+            })}
           </Button>
         )}
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">Achtergrondkleur vlakken</Text>
-        <Text tone="tertiary">Kleur van de kaarten en tekstblokken op gegenereerde pagina's. (standaard: wit)</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="settings.cardBgColor.label"
+            defaultMessage="Card background color"
+            description="Label for the card background color picker in Settings"
+          />
+        </Text>
+        <Text tone="tertiary">
+          <FormattedMessage
+            id="settings.cardBgColor.description"
+            defaultMessage="Color of the cards and text blocks on generated pages. (default: white)"
+            description="Description for the card background color setting"
+          />
+        </Text>
         <ColorSelector color={cardBgColor} onChange={onCardBgColorChange} />
-        <Text tone="tertiary">Dekking: {cardBgAlpha}%</Text>
+        <Text tone="tertiary">
+          {intl.formatMessage(
+            {
+              id: "settings.cardBgColor.opacity",
+              defaultMessage: "Opacity: {value}%",
+              description: "Shows the current opacity percentage for the card background color",
+            },
+            { value: cardBgAlpha },
+          )}
+        </Text>
         <Slider min={0} max={100} step={1} value={cardBgAlpha} onChange={onCardBgAlphaChange} />
       </Rows>
 
-      {/* Koppelcode en ontkoppelen zijn nu verplaatst naar SupportScreen */}
+      {/* Connection code and disconnect have been moved to the Support tab */}
     </Rows>
   );
 }
@@ -2634,6 +2738,7 @@ function GenerateScreen({
   reportDateRange,
   onReportDateRangeChange,
 }: GenerateScreenProps) {
+  const intl = useIntl();
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupStudents, setGroupStudents] = useState<Student[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -2692,7 +2797,11 @@ function GenerateScreen({
           setGroupStudents([]);
         }
       } catch {
-        setLoadError("Kon gegevens niet ophalen. Controleer je verbinding.");
+        setLoadError(intl.formatMessage({
+          id: "generate.loadError",
+          defaultMessage: "Could not retrieve data. Check your connection.",
+          description: "Error shown when the app fails to load groups and students",
+        }));
       } finally {
         setLoading(false);
       }
@@ -2717,7 +2826,11 @@ function GenerateScreen({
       } catch {
         if (!cancelled) {
           setGroupStudents([]);
-          setLoadError("Kon leerlingen voor deze groep niet ophalen.");
+          setLoadError(intl.formatMessage({
+            id: "generate.groupStudentsError",
+            defaultMessage: "Could not retrieve students for this class.",
+            description: "Error shown when loading students for a selected class fails",
+          }));
         }
       }
     };
@@ -2744,10 +2857,19 @@ function GenerateScreen({
   if (!apiKey) {
     return (
       <Rows spacing="2u">
-        <Text variant="bold" size="large">Genereren</Text>
+        <Text variant="bold" size="large">
+          <FormattedMessage
+            id="generate.title"
+            defaultMessage="Generate"
+            description="Title of the Generate tab"
+          />
+        </Text>
         <Text tone="tertiary">
-          Koppel eerst je account in het tabje Aanpassen om pagina's te
-          kunnen genereren.
+          <FormattedMessage
+            id="generate.noAccount"
+            defaultMessage="First connect your account in the Customize tab to generate pages."
+            description="Message shown when the user has not connected their account yet"
+          />
         </Text>
       </Rows>
     );
@@ -2762,42 +2884,83 @@ function GenerateScreen({
   return (
     <Rows spacing="3u">
 
-      {/* Stap 1 — Groep */}
+      {/* Step 1 — Group/student selection */}
       <Rows spacing="1u">
-        <Text variant="bold">① Kies wat je wilt genereren</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="generate.step1"
+            defaultMessage="① Choose what you want to generate"
+            description="Heading for step 1 of the generate flow"
+          />
+        </Text>
         <RadioGroup
           value={selectionMode}
           onChange={(value) => setSelectionMode(value as "group" | "student")}
           options={[
             {
               value: "group",
-              label: "Een hele groep",
-              description: "Genereer voor alle leerlingen in 1 groep",
+              label: intl.formatMessage({
+                id: "generate.mode.group",
+                defaultMessage: "An entire class",
+                description: "Radio option to generate reports for a whole class",
+              }),
+              description: intl.formatMessage({
+                id: "generate.mode.group.description",
+                defaultMessage: "Generate for all students in 1 class",
+                description: "Description for the 'entire class' radio option",
+              }),
             },
             {
               value: "student",
-              label: "Een individuele leerling",
-              description: "Genereer 1 enkel rapport",
+              label: intl.formatMessage({
+                id: "generate.mode.student",
+                defaultMessage: "An individual student",
+                description: "Radio option to generate a report for one student",
+              }),
+              description: intl.formatMessage({
+                id: "generate.mode.student.description",
+                defaultMessage: "Generate 1 individual report",
+                description: "Description for the 'individual student' radio option",
+              }),
             },
           ]}
         />
 
         {selectionMode === "group" ? (
           <>
-            <Text variant="bold">Kies een groep</Text>
+            <Text variant="bold">
+              <FormattedMessage
+                id="generate.chooseClass"
+                defaultMessage="Choose a class"
+                description="Label above the class selection radio group"
+              />
+            </Text>
             <RadioGroup
               value={selectedGroup}
               onChange={setSelectedGroup}
               options={groups.map((g) => ({
                 value: g.id,
                 label: g.name,
-                description: `${g.studentCount} leerlingen`,
+                description: intl.formatMessage(
+                  {
+                    id: "generate.studentCount",
+                    defaultMessage: "{count} students",
+                    description: "Shows the number of students in a class",
+                  },
+                  { count: g.studentCount },
+                ),
               }))}
             />
           </>
         ) : (
           <>
-            <Text variant="bold">Kies een leerling</Text>
+            <Text variant="bold">
+              <FormattedMessage
+                id="generate.chooseStudent"
+                defaultMessage="Choose a student"
+                description="Label above the student selection radio group"
+              />
+            </Text>
             <RadioGroup
               value={selectedStudentId}
               onChange={setSelectedStudentId}
@@ -2811,11 +2974,21 @@ function GenerateScreen({
         )}
       </Rows>
 
-      {/* Stap 2 — Datums */}
+      {/* Step 2 — Date range */}
       <Rows spacing="1u">
-        <Text variant="bold">② Van en tot datum</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="generate.step2"
+            defaultMessage="② From and to date"
+            description="Heading for step 2 of the generate flow"
+          />
+        </Text>
         <Text tone="tertiary">
-          Deze datums worden gebruikt voor het berekenen van de behaalde niveaus.
+          <FormattedMessage
+            id="generate.dateInfo"
+            defaultMessage="These dates are used to calculate the achieved levels."
+            description="Explanation of why the date range is needed"
+          />
         </Text>
         <div
           style={{
@@ -2825,7 +2998,13 @@ function GenerateScreen({
           }}
         >
           <label style={{ display: "grid", gap: 6 }}>
-            <Text variant="bold">Van datum</Text>
+            <Text variant="bold">
+              <FormattedMessage
+                id="generate.fromDate"
+                defaultMessage="From date"
+                description="Label for the start date input"
+              />
+            </Text>
             <input
               type="date"
               value={reportDateRange.fromDate}
@@ -2844,7 +3023,13 @@ function GenerateScreen({
             />
           </label>
           <label style={{ display: "grid", gap: 6 }}>
-            <Text variant="bold">Tot datum</Text>
+            <Text variant="bold">
+              <FormattedMessage
+                id="generate.toDate"
+                defaultMessage="To date"
+                description="Label for the end date input"
+              />
+            </Text>
             <input
               type="date"
               value={reportDateRange.toDate}
@@ -2865,9 +3050,15 @@ function GenerateScreen({
         </div>
       </Rows>
 
-      {/* Stap 3 — Template */}
+      {/* Step 3 — Template */}
       <Rows spacing="1u">
-        <Text variant="bold">③ Kies een template</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="generate.step3"
+            defaultMessage="③ Choose a template"
+            description="Heading for step 3 of the generate flow"
+          />
+        </Text>
         <Rows spacing="1u">
           {visibleTemplates.map((t) => (
             <Box
@@ -2888,28 +3079,50 @@ function GenerateScreen({
         </Rows>
         <Box paddingTop="2u">
         <Rows spacing="1u">
-          <Text variant="bold">Inhoud rapport per leerling</Text>
+          <Text variant="bold">
+            <FormattedMessage
+              id="generate.content.label"
+              defaultMessage="Report content per student"
+              description="Heading above the checkboxes for selecting which pages to include in the report"
+            />
+          </Text>
           <Checkbox
-            label="Voorpagina (foto pagina)"
+            label={intl.formatMessage({
+              id: "generate.content.photoPage",
+              defaultMessage: "Cover page (photo page)",
+              description: "Checkbox label for the cover/photo page option (always enabled)",
+            })}
             checked={true}
             disabled
           />
           <Checkbox
-            label="Extra pagina met 6 foto's"
+            label={intl.formatMessage({
+              id: "generate.content.extraPhotos",
+              defaultMessage: "Extra page with 6 photos",
+              description: "Checkbox label for the extra photos page option",
+            })}
             checked={reportContentOptions.extraPhotosPage}
             onChange={(_, checked) =>
               onReportContentOptionChange("extraPhotosPage", checked)
             }
           />
           <Checkbox
-            label="Extra pagina met 6 tekstvakken"
+            label={intl.formatMessage({
+              id: "generate.content.extraTextBoxes",
+              defaultMessage: "Extra page with 6 text boxes",
+              description: "Checkbox label for the extra text boxes page option",
+            })}
             checked={reportContentOptions.extraTextBoxesPage}
             onChange={(_, checked) =>
               onReportContentOptionChange("extraTextBoxesPage", checked)
             }
           />
           <Checkbox
-            label="Gekleurde niveauhandjes"
+            label={intl.formatMessage({
+              id: "generate.content.levelHands",
+              defaultMessage: "Colored level hands",
+              description: "Checkbox label for the colored level hands page option",
+            })}
             checked={reportContentOptions.coloredLevelHands}
             onChange={(_, checked) =>
               onReportContentOptionChange("coloredLevelHands", checked)
@@ -2921,18 +3134,30 @@ function GenerateScreen({
                 <MultilineInput
                   value={coloredLevelHandsTopText}
                   onChange={setColoredLevelHandsTopText}
-                  placeholder="Tekst boven de pagina (optioneel)"
+                  placeholder={intl.formatMessage({
+                    id: "generate.content.topText",
+                    defaultMessage: "Text above the page (optional)",
+                    description: "Placeholder for optional text shown above the level hands page",
+                  })}
                 />
                 <MultilineInput
                   value={coloredLevelHandsBottomText}
                   onChange={setColoredLevelHandsBottomText}
-                  placeholder="Tekst onder de pagina (optioneel)"
+                  placeholder={intl.formatMessage({
+                    id: "generate.content.bottomText",
+                    defaultMessage: "Text below the page (optional)",
+                    description: "Placeholder for optional text shown below the level hands page",
+                  })}
                 />
               </Rows>
             </Box>
           )}
           <Checkbox
-            label="Leerlinggrafieken"
+            label={intl.formatMessage({
+              id: "generate.content.studentGraphs",
+              defaultMessage: "Student graphs",
+              description: "Checkbox label for the student growth graphs page option",
+            })}
             checked={reportContentOptions.studentGraphs}
             onChange={(_, checked) =>
               onReportContentOptionChange("studentGraphs", checked)
@@ -2944,32 +3169,52 @@ function GenerateScreen({
                 <MultilineInput
                   value={studentGraphsTopText}
                   onChange={setStudentGraphsTopText}
-                  placeholder="Tekst boven de pagina (optioneel)"
+                  placeholder={intl.formatMessage({
+                    id: "generate.content.topText",
+                    defaultMessage: "Text above the page (optional)",
+                    description: "Placeholder for optional text shown above the level hands page",
+                  })}
                 />
                 <MultilineInput
                   value={studentGraphsBottomText}
                   onChange={setStudentGraphsBottomText}
-                  placeholder="Tekst onder de pagina (optioneel)"
+                  placeholder={intl.formatMessage({
+                    id: "generate.content.bottomText",
+                    defaultMessage: "Text below the page (optional)",
+                    description: "Placeholder for optional text shown below the level hands page",
+                  })}
                 />
               </Rows>
             </Box>
           )}
           <Checkbox
-            label="ik-tekening"
+            label={intl.formatMessage({
+              id: "generate.content.selfDrawing",
+              defaultMessage: "Self-drawing",
+              description: "Checkbox label for the self-drawing page option",
+            })}
             checked={reportContentOptions.selfDrawing}
             onChange={(_, checked) =>
               onReportContentOptionChange("selfDrawing", checked)
             }
           />
           <Checkbox
-            label="Doelniveau met omschrijving"
+            label={intl.formatMessage({
+              id: "generate.content.goalDescriptions",
+              defaultMessage: "Goal level with description",
+              description: "Checkbox label for the goal level with description page option",
+            })}
             checked={reportContentOptions.goalDescriptions}
             onChange={(_, checked) =>
               onReportContentOptionChange("goalDescriptions", checked)
             }
           />
           <Checkbox
-            label="Ontwikkeldoelen met niveaus"
+            label={intl.formatMessage({
+              id: "generate.content.goalLevels",
+              defaultMessage: "Development goals with levels",
+              description: "Checkbox label for the development goals with levels page option",
+            })}
             checked={reportContentOptions.goalLevels}
             onChange={(_, checked) =>
               onReportContentOptionChange("goalLevels", checked)
@@ -2979,25 +3224,47 @@ function GenerateScreen({
         </Box>
       </Rows>
 
-      {/* Stap 4 — Genereren */}
+      {/* Step 4 — Generate */}
       <Rows spacing="1u">
-        <Text variant="bold">④ Genereer pagina's</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="generate.step4"
+            defaultMessage="④ Generate pages"
+            description="Heading for step 4 of the generate flow"
+          />
+        </Text>
         {generationError && <Text tone="tertiary">{generationError}</Text>}
         {!canAddPage && (
           <Text tone="critical">
-            Dit Canva-document ondersteunt geen nieuwe pagina's. Open het rapport in een documenttype dat pagina's kan toevoegen.
+            <FormattedMessage
+              id="generate.noPages"
+              defaultMessage="This Canva document doesn't support new pages. Open the report in a document type that can add pages."
+              description="Error shown when the current Canva document type does not support adding pages"
+            />
           </Text>
         )}
         {(!reportDateRange.fromDate || !reportDateRange.toDate) && (
           <Text tone="critical">
-            Kies eerst een van- en totdatum.
+            <FormattedMessage
+              id="generate.noDate"
+              defaultMessage="First choose a from and to date."
+              description="Error shown when the user has not selected a date range yet"
+            />
           </Text>
         )}
         {studentsToGenerate.length === 0 ? (
           <Text tone="tertiary">
             {selectionMode === "student"
-              ? "Geen leerling geselecteerd."
-              : "Geen leerlingen gevonden in deze groep."}
+              ? intl.formatMessage({
+                  id: "generate.noStudent",
+                  defaultMessage: "No student selected.",
+                  description: "Shown when no individual student has been chosen",
+                })
+              : intl.formatMessage({
+                  id: "generate.noStudents",
+                  defaultMessage: "No students found in this class.",
+                  description: "Shown when the selected class has no students",
+                })}
           </Text>
         ) : (
           <Button
@@ -3014,8 +3281,19 @@ function GenerateScreen({
             stretch
           >
             {selectionMode === "student"
-              ? "Maak 1 rapport aan →"
-              : `Maak ${studentsToGenerate.length} rapporten aan →`}
+              ? intl.formatMessage({
+                  id: "generate.button.single",
+                  defaultMessage: "Create 1 report →",
+                  description: "Button to generate a report for the selected individual student",
+                })
+              : intl.formatMessage(
+                  {
+                    id: "generate.button.multiple",
+                    defaultMessage: "Create {count} reports →",
+                    description: "Button to generate reports for all students in the selected class",
+                  },
+                  { count: studentsToGenerate.length },
+                )}
           </Button>
         )}
       </Rows>
@@ -3033,6 +3311,7 @@ function SupportScreen({
   onConnected: (key: string) => void;
   onDisconnect: () => void;
 }) {
+  const intl = useIntl();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -3047,7 +3326,11 @@ function SupportScreen({
       localStorage.setItem(STORAGE_KEY, key);
       onConnected(key);
     } catch {
-      setError("Ongeldige koppelcode. Controleer of je de juiste code hebt gekopieerd vanuit de app.");
+      setError(intl.formatMessage({
+        id: "support.connect.error",
+        defaultMessage: "Invalid connection code. Check if you copied the correct code from the app.",
+        description: "Error shown when the user enters an invalid connection code",
+      }));
     } finally {
       setLoading(false);
     }
@@ -3056,19 +3339,40 @@ function SupportScreen({
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
-        <Text variant="bold" size="large">Informatie & Support</Text>
+        <Text variant="bold" size="large">
+          <FormattedMessage
+            id="support.title"
+            defaultMessage="Information & Support"
+            description="Title of the Support tab"
+          />
+        </Text>
         <Text>
-          Gebruik deze Canva-plugin om leerlingpagina's te genereren vanuit
-          MijnKleutergroep.          
+          <FormattedMessage
+            id="support.description"
+            defaultMessage="Use this Canva plugin to generate student pages from MijnKleutergroep."
+            description="Short description of what this plugin does, shown in the Support tab"
+          />
         </Text>
       </Rows>
 
       <Rows spacing="1u">
-        <Text variant="bold">MijnKleutergroep account koppelen</Text>
+        <Text variant="bold">
+          <FormattedMessage
+            id="support.connect.label"
+            defaultMessage="Connect MijnKleutergroep account"
+            description="Heading for the account connection section"
+          />
+        </Text>
         {!apiKey && (
           <>
             <Rows spacing="1u">
-              <Text variant="bold">Jouw koppelcode</Text>
+              <Text variant="bold">
+                <FormattedMessage
+                  id="support.connect.codeLabel"
+                  defaultMessage="Your connection code"
+                  description="Label above the connection code input field"
+                />
+              </Text>
               <TextInput
                 value={input}
                 onChange={(v) => {
@@ -3087,14 +3391,22 @@ function SupportScreen({
               stretch
               disabled={!input.trim()}
             >
-              Verbinden
+              {intl.formatMessage({
+                id: "support.connect.button",
+                defaultMessage: "Connect",
+                description: "Button to submit the connection code and link the account",
+              })}
             </Button>
           </>
         )}
 
         {apiKey && (
           <Button variant="secondary" onClick={onDisconnect} stretch>
-            Ontkoppelen
+            {intl.formatMessage({
+              id: "support.disconnect.button",
+              defaultMessage: "Disconnect",
+              description: "Button to unlink the currently connected MijnKleutergroep account",
+            })}
           </Button>
         )}
       </Rows>
@@ -3185,8 +3497,8 @@ function GeneratingScreen({
         } catch (e) {
           failedNames.push(student.name);
           setFailed([...failedNames]);
-          const msg = e instanceof Error ? e.message : "Onbekende fout tijdens pagina generatie.";
-          console.error(`[Genereren] Fout voor ${student.name}:`, e);
+          const msg = e instanceof Error ? e.message : "Unknown error during page generation.";
+          console.error(`[Generate] Error for ${student.name}:`, e);
           setError(msg);
         }
         i++;
@@ -3212,11 +3524,19 @@ function GeneratingScreen({
   const pct = Math.round((current / students.length) * 100);
   const currentStudent = students[Math.min(current, students.length - 1)];
 
+  const intl = useIntl();
+
   return (
     <Rows spacing="3u">
-      <Text variant="bold" size="large">Pagina's aanmaken…</Text>
+      <Text variant="bold" size="large">
+        <FormattedMessage
+          id="generating.title"
+          defaultMessage="Creating pages…"
+          description="Title shown while reports are being generated"
+        />
+      </Text>
 
-      {/* Voortgangsbalk (handmatig, geen ProgressBar component nodig) */}
+      {/* Progress bar */}
       <Rows spacing="1u">
         <div
           style={{
@@ -3244,37 +3564,72 @@ function GeneratingScreen({
       {failed.length > 0 && (
         <Rows spacing="1u">
           <Text tone="critical">
-            Mislukt voor: {failed.join(", ")}
+            {intl.formatMessage(
+              {
+                id: "generating.failed",
+                defaultMessage: "Failed for: {names}",
+                description: "Error listing the students whose pages could not be generated",
+              },
+              { names: failed.join(", ") },
+            )}
           </Text>
         </Rows>
       )}
 
       {error && (
         <Rows spacing="1u">
-          <Text tone="critical">Fout: {error}</Text>
+          <Text tone="critical">
+            {intl.formatMessage(
+              {
+                id: "generating.error",
+                defaultMessage: "Error: {error}",
+                description: "Generic error message shown during page generation",
+              },
+              { error },
+            )}
+          </Text>
         </Rows>
       )}
 
       <Button variant="tertiary" onClick={onCancel} stretch>
-        Annuleren
+        {intl.formatMessage({
+          id: "generating.cancel",
+          defaultMessage: "Cancel",
+          description: "Button to cancel the page generation process",
+        })}
       </Button>
     </Rows>
   );
 }
 
-// 4. Klaar-scherm
+// 4. Done screen
 function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
+  const intl = useIntl();
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
-        <Text variant="bold" size="large">✅ Klaar!</Text>
+        <Text variant="bold" size="large">
+          <FormattedMessage
+            id="done.title"
+            defaultMessage="✅ Done!"
+            description="Title shown when all reports have been successfully generated"
+          />
+        </Text>
         <Text>
-          {count} pagina's zijn aangemaakt in je Canva-document. Je kunt nu
-          aanpassingen maken en daarna afdrukken via Delen → Downloaden → PDF.
+          <FormattedMessage
+            id="done.description"
+            defaultMessage="{count} pages have been created in your Canva document. You can now make changes and then print via Share → Download → PDF."
+            description="Success message shown after generating reports, explaining next steps"
+            values={{ count }}
+          />
         </Text>
       </Rows>
       <Button variant="primary" onClick={onBack} stretch>
-        Meer rapporten genereren
+        {intl.formatMessage({
+          id: "done.button",
+          defaultMessage: "Generate more reports",
+          description: "Button to go back and generate more reports",
+        })}
       </Button>
     </Rows>
   );
@@ -3283,6 +3638,7 @@ function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
 // ─── Root app ─────────────────────────────────────────────────────────────────
 
 export const App = () => {
+  const intl = useIntl();
   const imageSelection = useSelection("image");
   const imageSelectionCount = imageSelection?.count ?? 0;
   const isSupported = useFeatureSupport();
@@ -3566,7 +3922,11 @@ export const App = () => {
     setIsBackgroundModalOpen(true);
 
     if (!apiKey) {
-      setBackgroundsError("Koppel eerst je account om achtergronden op te halen.");
+      setBackgroundsError(intl.formatMessage({
+        id: "modal.background.noAccount",
+        defaultMessage: "Connect your account first to load backgrounds.",
+        description: "Error shown when trying to open the background picker without a connected account",
+      }));
       return;
     }
 
@@ -3581,7 +3941,11 @@ export const App = () => {
       const options = await fetchBackgrounds(apiKey);
       setBackgroundOptions(options);
     } catch {
-      setBackgroundsError("Kon achtergronden niet ophalen.");
+      setBackgroundsError(intl.formatMessage({
+        id: "modal.background.loadError",
+        defaultMessage: "Could not load backgrounds.",
+        description: "Error shown when the background images fail to load",
+      }));
     } finally {
       setBackgroundsLoading(false);
     }
@@ -3598,7 +3962,11 @@ export const App = () => {
     setTapesWarning("");
 
     if (!apiKey) {
-      setTapesError("Koppel eerst je account om tapes op te halen.");
+      setTapesError(intl.formatMessage({
+        id: "modal.tape.noAccount",
+        defaultMessage: "Connect your account first to load tapes.",
+        description: "Error shown when trying to open the tape picker without a connected account",
+      }));
       return;
     }
 
@@ -3613,7 +3981,11 @@ export const App = () => {
       const options = await fetchTapes(apiKey);
       setTapeOptions(options);
     } catch {
-      setTapesError("Kon tapes niet ophalen.");
+      setTapesError(intl.formatMessage({
+        id: "modal.tape.loadError",
+        defaultMessage: "Could not load tapes.",
+        description: "Error shown when the tape images fail to load",
+      }));
     } finally {
       setTapesLoading(false);
     }
@@ -3630,7 +4002,11 @@ export const App = () => {
       }
 
       if (prev.length >= 10) {
-        setTapesWarning("Je kunt maximaal 10 tapes selecteren.");
+        setTapesWarning(intl.formatMessage({
+          id: "modal.tape.maxWarning",
+          defaultMessage: "You can select a maximum of 10 tapes.",
+          description: "Warning shown when the user tries to select more than 10 tapes",
+        }));
         return prev;
       }
 
@@ -3704,14 +4080,22 @@ export const App = () => {
   const openStudentPhotoPicker = async () => {
     if (!apiKey) {
       setStudentPhotos([]);
-      setStudentPhotosError("Koppel eerst je account om leerlingfoto's op te halen.");
+      setStudentPhotosError(intl.formatMessage({
+        id: "modal.photo.noAccount",
+        defaultMessage: "Connect your account first to load student photos.",
+        description: "Error shown when opening the photo picker without a connected account",
+      }));
       setIsPhotoModalOpen(true);
       return;
     }
 
     if (imageSelection.count === 0) {
       setStudentPhotos([]);
-      setStudentPhotosError("Selecteer eerst een foto in je Canva-document.");
+      setStudentPhotosError(intl.formatMessage({
+        id: "modal.photo.noSelection",
+        defaultMessage: "First select a photo in your Canva document.",
+        description: "Error shown when the user opens the photo picker without selecting an image first",
+      }));
       setIsPhotoModalOpen(true);
       return;
     }
@@ -3734,9 +4118,11 @@ export const App = () => {
         setSelectedStudentId("");
         setStudentSelectionOptions([]);
         setStudentSelectionLoading(false);
-        setStudentPhotosError(
-          "Deze selectie is geen gekoppelde leerlingfoto. Selecteer een foto in een polaroid.",
-        );
+        setStudentPhotosError(intl.formatMessage({
+          id: "modal.photo.notLinked",
+          defaultMessage: "This selection is not a linked student photo. Select a photo inside a polaroid.",
+          description: "Error shown when the selected image is not recognized as a student photo",
+        }));
         setIsPhotoModalOpen(true);
         return;
       }
@@ -3745,13 +4131,21 @@ export const App = () => {
       setSelectedStudentId(studentId);
       setStudentPhotos(photos);
       if (photos.length === 0) {
-        setStudentPhotosError("Geen leerlingfoto's gevonden voor deze leerling.");
+        setStudentPhotosError(intl.formatMessage({
+          id: "modal.photo.noPhotos",
+          defaultMessage: "No student photos found for this student.",
+          description: "Shown when a student has no photos available",
+        }));
       }
       setIsPhotoModalOpen(true);
     } catch {
       setStudentPhotos([]);
       setSelectedStudentId("");
-      setStudentPhotosError("Kon leerlingfoto's niet ophalen.");
+      setStudentPhotosError(intl.formatMessage({
+        id: "modal.photo.loadError",
+        defaultMessage: "Could not load student photos.",
+        description: "Error shown when the student photos fail to load",
+      }));
       setIsPhotoModalOpen(true);
     } finally {
       setStudentPhotosLoading(false);
@@ -3771,12 +4165,20 @@ export const App = () => {
       setSelectedStudentId(student.id);
       setStudentPhotos(photos);
       if (photos.length === 0) {
-        setStudentPhotosError("Geen leerlingfoto's gevonden voor deze leerling.");
+        setStudentPhotosError(intl.formatMessage({
+          id: "modal.photo.noPhotos",
+          defaultMessage: "No student photos found for this student.",
+          description: "Shown when a student has no photos available",
+        }));
       }
     } catch {
       setStudentPhotos([]);
       setSelectedStudentId("");
-      setStudentPhotosError("Kon leerlingfoto's niet ophalen.");
+      setStudentPhotosError(intl.formatMessage({
+        id: "modal.photo.loadError",
+        defaultMessage: "Could not load student photos.",
+        description: "Error shown when the student photos fail to load",
+      }));
     } finally {
       setStudentPhotosLoading(false);
     }
@@ -3789,7 +4191,11 @@ export const App = () => {
       const newRef = await uploadPhoto(photo.url);
       const draft = await imageSelection.read();
       if (draft.contents.length === 0) {
-        setStudentPhotosError("Selecteer opnieuw een foto in je document.");
+        setStudentPhotosError(intl.formatMessage({
+          id: "modal.photo.reselect",
+          defaultMessage: "Please select a photo in your document again.",
+          description: "Error asking the user to re-select a photo in the Canva document",
+        }));
         return;
       }
       draft.contents.forEach((item) => {
@@ -3801,7 +4207,11 @@ export const App = () => {
       }
       setIsPhotoModalOpen(false);
     } catch {
-      setStudentPhotosError("Kon de geselecteerde foto niet vervangen.");
+      setStudentPhotosError(intl.formatMessage({
+        id: "modal.photo.replaceError",
+        defaultMessage: "Could not replace the selected photo.",
+        description: "Error shown when replacing a student photo fails",
+      }));
     } finally {
       setReplacingPhoto(false);
     }
@@ -3810,14 +4220,22 @@ export const App = () => {
   const openNiveauHandPicker = async (knownColor?: string) => {
     if (!apiKey) {
       setNiveauOptions([]);
-      setNiveauOptionsError("Koppel eerst je account om niveaus op te halen.");
+      setNiveauOptionsError(intl.formatMessage({
+        id: "modal.niveau.noAccount",
+        defaultMessage: "Connect your account first to load levels.",
+        description: "Error shown when opening the level hand picker without a connected account",
+      }));
       setIsNiveauModalOpen(true);
       return;
     }
 
     if (imageSelection.count === 0) {
       setNiveauOptions([]);
-      setNiveauOptionsError("Selecteer eerst een gekleurd niveauhandje in je Canva-document.");
+      setNiveauOptionsError(intl.formatMessage({
+        id: "modal.niveau.noSelection",
+        defaultMessage: "First select a colored level hand in your Canva document.",
+        description: "Error shown when the user opens the level picker without selecting an image first",
+      }));
       setIsNiveauModalOpen(true);
       return;
     }
@@ -3847,13 +4265,21 @@ export const App = () => {
       setSelectedNiveauColor(initialColor ? normalizeNiveauColor(initialColor) : "");
       setNiveauOptions(options);
       if (!initialColor) {
-        setNiveauOptionsError("Kon de huidige kleur niet bepalen — kies handmatig een kleur.");
+        setNiveauOptionsError(intl.formatMessage({
+          id: "modal.niveau.colorUnknown",
+          defaultMessage: "Could not determine the current color — please choose a color manually.",
+          description: "Warning shown when the current level hand color cannot be detected automatically",
+        }));
       }
       setIsNiveauModalOpen(true);
     } catch {
       setNiveauOptions([]);
       setSelectedNiveauColor("");
-      setNiveauOptionsError("Kon niveaus niet ophalen.");
+      setNiveauOptionsError(intl.formatMessage({
+        id: "modal.niveau.loadError",
+        defaultMessage: "Could not load levels.",
+        description: "Error shown when the level options fail to load",
+      }));
       setIsNiveauModalOpen(true);
     } finally {
       setNiveauOptionsLoading(false);
@@ -3871,7 +4297,11 @@ export const App = () => {
 
       const draft = await imageSelection.read();
       if (draft.contents.length === 0) {
-        setNiveauOptionsError("Selecteer opnieuw een niveauhandje in je document.");
+        setNiveauOptionsError(intl.formatMessage({
+          id: "modal.niveau.reselect",
+          defaultMessage: "Please select a level hand in your document again.",
+          description: "Error asking the user to re-select a level hand in the Canva document",
+        }));
         return;
       }
 
@@ -3889,7 +4319,11 @@ export const App = () => {
       setSelectedNiveauColor(normalizedColor);
       setIsNiveauModalOpen(false);
     } catch {
-      setNiveauOptionsError("Kon de kleur van dit niveauhandje niet wijzigen.");
+      setNiveauOptionsError(intl.formatMessage({
+        id: "modal.niveau.changeError",
+        defaultMessage: "Could not change the color of this level hand.",
+        description: "Error shown when replacing a level hand image fails",
+      }));
     } finally {
       setReplacingNiveauHand(false);
     }
@@ -3993,15 +4427,25 @@ export const App = () => {
     const dimensions = pageDimensions ?? metadata.defaultPageDimensions;
 
     if (!dimensions || !isA4Dimensions(dimensions.width, dimensions.height)) {
-      setGenerationError(
-        "Dit Canva-document is geen A4. Nieuwe pagina's nemen altijd het formaat van het huidige document over.",
-      );
+      setGenerationError(intl.formatMessage({
+        id: "error.notA4",
+        defaultMessage: "This Canva document is not A4. New pages always take the size of the current document.",
+        description: "Error shown when the current Canva document is not A4 format",
+      }));
       return;
     } else if (!reportDateRange.fromDate || !reportDateRange.toDate) {
-      setGenerationError("Kies eerst een van- en totdatum voor de rapportdata.");
+      setGenerationError(intl.formatMessage({
+        id: "error.noDate",
+        defaultMessage: "First choose a from and to date for the report data.",
+        description: "Error shown when no date range has been selected before generating",
+      }));
       return;
     } else if (reportDateRange.fromDate > reportDateRange.toDate) {
-      setGenerationError("De van-datum mag niet later zijn dan de tot-datum.");
+      setGenerationError(intl.formatMessage({
+        id: "error.dateOrder",
+        defaultMessage: "The from date cannot be later than the to date.",
+        description: "Error shown when the start date is set after the end date",
+      }));
       return;
     } else {
       setGenerationError("");
@@ -4032,14 +4476,22 @@ export const App = () => {
               active={activeTab === "generate"}
               onClick={() => setActiveTab("generate")}
             >
-              Genereren
+              {intl.formatMessage({
+                id: "tabs.generate",
+                defaultMessage: "Generate",
+                description: "Label for the Generate tab",
+              })}
             </Tab>
             <Tab
               id="support"
               active={activeTab === "support"}
               onClick={() => setActiveTab("support")}
             >
-              Aanpassen
+              {intl.formatMessage({
+                id: "tabs.customize",
+                defaultMessage: "Customize",
+                description: "Label for the Customize tab",
+              })}
             </Tab>
           </TabList>
         </Box>
@@ -4116,9 +4568,19 @@ export const App = () => {
           <TabPanel id="support">
             <Rows spacing="3u">
               <Rows spacing="1u">
-                <Text variant="bold">Vervang geselecteerde leerlingfoto</Text>
+                <Text variant="bold">
+                  <FormattedMessage
+                    id="customize.replacePhoto.title"
+                    defaultMessage="Replace selected student photo"
+                    description="Heading for the photo replacement section in the Customize tab"
+                  />
+                </Text>
                 <Text tone="tertiary">
-                  Klik eerst op een leerlingfoto of niveauhandje in je Canva-document en kies daarna een nieuwe foto of kleur.
+                  <FormattedMessage
+                    id="customize.replacePhoto.description"
+                    defaultMessage="First click on a student photo or level hand in your Canva document, then choose a new photo or color."
+                    description="Instructions for replacing a student photo or level hand"
+                  />
                 </Text>
                 <Button
                   variant="secondary"
@@ -4127,7 +4589,11 @@ export const App = () => {
                   disabled={imageSelectionCount === 0}
                   loading={studentPhotosLoading}
                 >
-                  Kies vervangfoto
+                  {intl.formatMessage({
+                    id: "customize.replacePhoto.button",
+                    defaultMessage: "Choose replacement photo",
+                    description: "Button to open the student photo picker",
+                  })}
                 </Button>
                 <Button
                   variant="secondary"
@@ -4135,7 +4601,11 @@ export const App = () => {
                   stretch
                   disabled={imageSelectionCount === 0}
                 >
-                  Kleur geselecteerd handje wijzigen
+                  {intl.formatMessage({
+                    id: "customize.changeHandColor.button",
+                    defaultMessage: "Change color of selected hand",
+                    description: "Button to open the level hand color picker",
+                  })}
                 </Button>
               </Rows>
               <SupportScreen
@@ -4173,10 +4643,19 @@ export const App = () => {
             >
               <Rows spacing="2u">
                 <Rows spacing="1u">
-                  <Text variant="bold" size="large">Achtergrond instellen</Text>
+                  <Text variant="bold" size="large">
+                    <FormattedMessage
+                      id="modal.background.title"
+                      defaultMessage="Set background"
+                      description="Title of the background picker modal"
+                    />
+                  </Text>
                   <Text tone="tertiary">
-                    Kies een achtergrond die gebruikt wordt voor nieuw
-                    gegenereerde A4-pagina's.
+                    <FormattedMessage
+                      id="modal.background.description"
+                      defaultMessage="Choose a background to use for newly generated A4 pages."
+                      description="Description shown at the top of the background picker modal"
+                    />
                   </Text>
                 </Rows>
 
@@ -4210,7 +4689,11 @@ export const App = () => {
                   onClick={() => setIsBackgroundModalOpen(false)}
                   stretch
                 >
-                  Sluiten
+                  {intl.formatMessage({
+                    id: "modal.close",
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
                 </Button>
               </Rows>
             </div>
@@ -4243,11 +4726,28 @@ export const App = () => {
             >
               <Rows spacing="2u">
                 <Rows spacing="1u">
-                  <Text variant="bold" size="large">Leerlingfoto vervangen</Text>
+                  <Text variant="bold" size="large">
+                    <FormattedMessage
+                      id="modal.photo.title"
+                      defaultMessage="Replace student photo"
+                      description="Title of the student photo replacement modal"
+                    />
+                  </Text>
                   <Text tone="tertiary">
                     {selectedStudentId
-                      ? `Kies een foto voor leerling ${selectedStudentId}.`
-                      : "Kies een nieuwe foto voor de geselecteerde afbeelding."}
+                      ? intl.formatMessage(
+                          {
+                            id: "modal.photo.withStudent",
+                            defaultMessage: "Choose a photo for student {id}.",
+                            description: "Instructions shown when a specific student is identified",
+                          },
+                          { id: selectedStudentId },
+                        )
+                      : intl.formatMessage({
+                          id: "modal.photo.noStudent",
+                          defaultMessage: "Choose a new photo for the selected image.",
+                          description: "Instructions shown when no specific student is identified",
+                        })}
                   </Text>
                 </Rows>
 
@@ -4260,7 +4760,13 @@ export const App = () => {
                       <LoadingIndicator />
                     ) : studentSelectionOptions.length > 0 ? (
                       <Rows spacing="1u">
-                        <Text variant="bold">Kies leerling</Text>
+                        <Text variant="bold">
+                          <FormattedMessage
+                            id="modal.photo.chooseStudent"
+                            defaultMessage="Choose student"
+                            description="Heading above the student selection list in the photo modal"
+                          />
+                        </Text>
                         {studentSelectionOptions.map((student) => (
                           <Button
                             key={student.id}
@@ -4280,8 +4786,22 @@ export const App = () => {
                       <Box key={String(photo.id)}>
                         <Rows spacing="1u">
                           <ImageCard
-                            ariaLabel={`Leerlingfoto ${photo.id}`}
-                            alt={`Leerlingfoto ${photo.id}`}
+                            ariaLabel={intl.formatMessage(
+                              {
+                                id: "modal.photo.ariaLabel",
+                                defaultMessage: "Student photo {id}",
+                                description: "Accessible label for a student photo thumbnail",
+                              },
+                              { id: photo.id },
+                            )}
+                            alt={intl.formatMessage(
+                              {
+                                id: "modal.photo.ariaLabel",
+                                defaultMessage: "Student photo {id}",
+                                description: "Accessible label for a student photo thumbnail",
+                              },
+                              { id: photo.id },
+                            )}
                             thumbnailUrl={photo.url}
                             onClick={() => handleStudentPhotoReplace(photo)}
                             selectable={false}
@@ -4299,7 +4819,11 @@ export const App = () => {
                   stretch
                   disabled={replacingPhoto}
                 >
-                  Sluiten
+                  {intl.formatMessage({
+                    id: "modal.close",
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
                 </Button>
               </Rows>
             </div>
@@ -4332,9 +4856,19 @@ export const App = () => {
             >
               <Rows spacing="2u">
                 <Rows spacing="1u">
-                  <Text variant="bold" size="large">Niveauhandje kleur wijzigen</Text>
+                  <Text variant="bold" size="large">
+                    <FormattedMessage
+                      id="modal.niveau.title"
+                      defaultMessage="Change level hand color"
+                      description="Title of the level hand color picker modal"
+                    />
+                  </Text>
                   <Text tone="tertiary">
-                    Klik op een kleur om het geselecteerde niveauhandje in je document te vervangen.
+                    <FormattedMessage
+                      id="modal.niveau.description"
+                      defaultMessage="Click on a color to replace the selected level hand in your document."
+                      description="Instructions shown at the top of the level hand color picker modal"
+                    />
                   </Text>
                 </Rows>
 
@@ -4379,7 +4913,11 @@ export const App = () => {
                   stretch
                   disabled={replacingNiveauHand}
                 >
-                  Sluiten
+                  {intl.formatMessage({
+                    id: "modal.close",
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
                 </Button>
               </Rows>
             </div>
@@ -4412,9 +4950,19 @@ export const App = () => {
             >
               <Rows spacing="2u">
                 <Rows spacing="1u">
-                  <Text variant="bold" size="large">Tapes kiezen</Text>
+                  <Text variant="bold" size="large">
+                    <FormattedMessage
+                      id="modal.tape.title"
+                      defaultMessage="Choose tapes"
+                      description="Title of the tape picker modal"
+                    />
+                  </Text>
                   <Text tone="tertiary">
-                    Kies maximaal 10 tapes.
+                    <FormattedMessage
+                      id="modal.tape.description"
+                      defaultMessage="Choose a maximum of 10 tapes."
+                      description="Instructions shown at the top of the tape picker modal"
+                    />
                   </Text>
                 </Rows>
 
@@ -4451,7 +4999,11 @@ export const App = () => {
                   onClick={() => setIsTapeModalOpen(false)}
                   stretch
                 >
-                  Sluiten
+                  {intl.formatMessage({
+                    id: "modal.close",
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
                 </Button>
               </Rows>
             </div>
