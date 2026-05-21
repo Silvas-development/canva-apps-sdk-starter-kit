@@ -1,0 +1,450 @@
+{
+  "+TOtT2": {
+    "defaultMessage": "Open Canva Apps SDK docs",
+    "description": "Button text to open Canva Apps SDK docs. Opens an external URL when pressed."
+  },
+  "Hq2Ipf": {
+    "defaultMessage": "Do something cool",
+    "description": "Button text to do something cool. Creates a new text element when pressed."
+  },
+  "WLxpPq": {
+    "defaultMessage": "To make changes to this app, edit the <code>src/app.tsx</code> file, then close and reopen the app in the editor to preview the changes.",
+    "description": "Instructions for how to make changes to the app. Do not translate <code>src/app.tsx</code>."
+  },
+  "customize.changeHandColor.button": {
+    "defaultMessage": "Change color of selected hand",
+    "description": "Button to open the level hand color picker"
+  },
+  "customize.replacePhoto.button": {
+    "defaultMessage": "Choose replacement photo",
+    "description": "Button to open the student photo picker"
+  },
+  "customize.replacePhoto.description": {
+    "defaultMessage": "First click on a student photo or level hand in your Canva document, then choose a new photo or color.",
+    "description": "Instructions for replacing a student photo or level hand"
+  },
+  "customize.replacePhoto.title": {
+    "defaultMessage": "Replace selected student photo",
+    "description": "Heading for the photo replacement section in the Customize tab"
+  },
+  "done.button": {
+    "defaultMessage": "Generate more reports",
+    "description": "Button to go back and generate more reports"
+  },
+  "done.description": {
+    "defaultMessage": "{count} pages have been created in your Canva document. You can now make changes and then print via Share → Download → PDF.",
+    "description": "Success message shown after generating reports, explaining next steps"
+  },
+  "done.title": {
+    "defaultMessage": "✅ Done!",
+    "description": "Title shown when all reports have been successfully generated"
+  },
+  "error.dateOrder": {
+    "defaultMessage": "The from date cannot be later than the to date.",
+    "description": "Error shown when the start date is set after the end date"
+  },
+  "error.noDate": {
+    "defaultMessage": "First choose a from and to date for the report data.",
+    "description": "Error shown when no date range has been selected before generating"
+  },
+  "error.notA4": {
+    "defaultMessage": "This Canva document is not A4. New pages always take the size of the current document.",
+    "description": "Error shown when the current Canva document is not A4 format"
+  },
+  "generate.button.multiple": {
+    "defaultMessage": "Create {count} reports →",
+    "description": "Button to generate reports for all students in the selected class"
+  },
+  "generate.button.single": {
+    "defaultMessage": "Create 1 report →",
+    "description": "Button to generate a report for the selected individual student"
+  },
+  "generate.chooseClass": {
+    "defaultMessage": "Choose a class",
+    "description": "Label above the class selection radio group"
+  },
+  "generate.chooseStudent": {
+    "defaultMessage": "Choose a student",
+    "description": "Label above the student selection radio group"
+  },
+  "generate.content.bottomText": {
+    "defaultMessage": "Text below the page (optional)",
+    "description": "Placeholder for optional text shown below the level hands page"
+  },
+  "generate.content.extraPhotos": {
+    "defaultMessage": "Extra page with 6 photos",
+    "description": "Checkbox label for the extra photos page option"
+  },
+  "generate.content.extraTextBoxes": {
+    "defaultMessage": "Extra page with 6 text boxes",
+    "description": "Checkbox label for the extra text boxes page option"
+  },
+  "generate.content.goalDescriptions": {
+    "defaultMessage": "Goal level with description",
+    "description": "Checkbox label for the goal level with description page option"
+  },
+  "generate.content.goalLevels": {
+    "defaultMessage": "Development goals with levels",
+    "description": "Checkbox label for the development goals with levels page option"
+  },
+  "generate.content.label": {
+    "defaultMessage": "Report content per student",
+    "description": "Heading above the checkboxes for selecting which pages to include in the report"
+  },
+  "generate.content.levelHands": {
+    "defaultMessage": "Colored level hands",
+    "description": "Checkbox label for the colored level hands page option"
+  },
+  "generate.content.photoPage": {
+    "defaultMessage": "Cover page (photo page)",
+    "description": "Checkbox label for the cover/photo page option (always enabled)"
+  },
+  "generate.content.selfDrawing": {
+    "defaultMessage": "Self-drawing",
+    "description": "Checkbox label for the self-drawing page option"
+  },
+  "generate.content.studentGraphs": {
+    "defaultMessage": "Student graphs",
+    "description": "Checkbox label for the student growth graphs page option"
+  },
+  "generate.content.topText": {
+    "defaultMessage": "Text above the page (optional)",
+    "description": "Placeholder for optional text shown above the level hands page"
+  },
+  "generate.dateInfo": {
+    "defaultMessage": "These dates are used to calculate the achieved levels.",
+    "description": "Explanation of why the date range is needed"
+  },
+  "generate.fromDate": {
+    "defaultMessage": "From date",
+    "description": "Label for the start date input"
+  },
+  "generate.groupStudentsError": {
+    "defaultMessage": "Could not retrieve students for this class.",
+    "description": "Error shown when loading students for a selected class fails"
+  },
+  "generate.loadError": {
+    "defaultMessage": "Could not retrieve data. Check your connection.",
+    "description": "Error shown when the app fails to load groups and students"
+  },
+  "generate.mode.group": {
+    "defaultMessage": "An entire class",
+    "description": "Radio option to generate reports for a whole class"
+  },
+  "generate.mode.group.description": {
+    "defaultMessage": "Generate for all students in 1 class",
+    "description": "Description for the 'entire class' radio option"
+  },
+  "generate.mode.student": {
+    "defaultMessage": "An individual student",
+    "description": "Radio option to generate a report for one student"
+  },
+  "generate.mode.student.description": {
+    "defaultMessage": "Generate 1 individual report",
+    "description": "Description for the 'individual student' radio option"
+  },
+  "generate.noAccount": {
+    "defaultMessage": "First connect your account in the Customize tab to generate pages.",
+    "description": "Message shown when the user has not connected their account yet"
+  },
+  "generate.noDate": {
+    "defaultMessage": "First choose a from and to date.",
+    "description": "Error shown when the user has not selected a date range yet"
+  },
+  "generate.noPages": {
+    "defaultMessage": "This Canva document doesn't support new pages. Open the report in a document type that can add pages.",
+    "description": "Error shown when the current Canva document type does not support adding pages"
+  },
+  "generate.noStudent": {
+    "defaultMessage": "No student selected.",
+    "description": "Shown when no individual student has been chosen"
+  },
+  "generate.noStudents": {
+    "defaultMessage": "No students found in this class.",
+    "description": "Shown when the selected class has no students"
+  },
+  "generate.step1": {
+    "defaultMessage": "① Choose what you want to generate",
+    "description": "Heading for step 1 of the generate flow"
+  },
+  "generate.step2": {
+    "defaultMessage": "② From and to date",
+    "description": "Heading for step 2 of the generate flow"
+  },
+  "generate.step3": {
+    "defaultMessage": "③ Choose a template",
+    "description": "Heading for step 3 of the generate flow"
+  },
+  "generate.step4": {
+    "defaultMessage": "④ Generate pages",
+    "description": "Heading for step 4 of the generate flow"
+  },
+  "generate.studentCount": {
+    "defaultMessage": "{count} students",
+    "description": "Shows the number of students in a class"
+  },
+  "generate.title": {
+    "defaultMessage": "Generate",
+    "description": "Title of the Generate tab"
+  },
+  "generate.toDate": {
+    "defaultMessage": "To date",
+    "description": "Label for the end date input"
+  },
+  "generating.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "Button to cancel the page generation process"
+  },
+  "generating.error": {
+    "defaultMessage": "Error: {error}",
+    "description": "Generic error message shown during page generation"
+  },
+  "generating.failed": {
+    "defaultMessage": "Failed for: {names}",
+    "description": "Error listing the students whose pages could not be generated"
+  },
+  "generating.title": {
+    "defaultMessage": "Creating pages…",
+    "description": "Title shown while reports are being generated"
+  },
+  "modal.background.description": {
+    "defaultMessage": "Choose a background to use for newly generated A4 pages.",
+    "description": "Description shown at the top of the background picker modal"
+  },
+  "modal.background.loadError": {
+    "defaultMessage": "Could not load backgrounds.",
+    "description": "Error shown when the background images fail to load"
+  },
+  "modal.background.noAccount": {
+    "defaultMessage": "Connect your account first to load backgrounds.",
+    "description": "Error shown when trying to open the background picker without a connected account"
+  },
+  "modal.background.title": {
+    "defaultMessage": "Set background",
+    "description": "Title of the background picker modal"
+  },
+  "modal.close": {
+    "defaultMessage": "Close",
+    "description": "Button to close a modal dialog"
+  },
+  "modal.niveau.changeError": {
+    "defaultMessage": "Could not change the color of this level hand.",
+    "description": "Error shown when replacing a level hand image fails"
+  },
+  "modal.niveau.colorUnknown": {
+    "defaultMessage": "Could not determine the current color — please choose a color manually.",
+    "description": "Warning shown when the current level hand color cannot be detected automatically"
+  },
+  "modal.niveau.description": {
+    "defaultMessage": "Click on a color to replace the selected level hand in your document.",
+    "description": "Instructions shown at the top of the level hand color picker modal"
+  },
+  "modal.niveau.loadError": {
+    "defaultMessage": "Could not load levels.",
+    "description": "Error shown when the level options fail to load"
+  },
+  "modal.niveau.noAccount": {
+    "defaultMessage": "Connect your account first to load levels.",
+    "description": "Error shown when opening the level hand picker without a connected account"
+  },
+  "modal.niveau.noSelection": {
+    "defaultMessage": "First select a colored level hand in your Canva document.",
+    "description": "Error shown when the user opens the level picker without selecting an image first"
+  },
+  "modal.niveau.reselect": {
+    "defaultMessage": "Please select a level hand in your document again.",
+    "description": "Error asking the user to re-select a level hand in the Canva document"
+  },
+  "modal.niveau.title": {
+    "defaultMessage": "Change level hand color",
+    "description": "Title of the level hand color picker modal"
+  },
+  "modal.photo.ariaLabel": {
+    "defaultMessage": "Student photo {id}",
+    "description": "Accessible label for a student photo thumbnail"
+  },
+  "modal.photo.chooseStudent": {
+    "defaultMessage": "Choose student",
+    "description": "Heading above the student selection list in the photo modal"
+  },
+  "modal.photo.loadError": {
+    "defaultMessage": "Could not load student photos.",
+    "description": "Error shown when the student photos fail to load"
+  },
+  "modal.photo.noAccount": {
+    "defaultMessage": "Connect your account first to load student photos.",
+    "description": "Error shown when opening the photo picker without a connected account"
+  },
+  "modal.photo.noPhotos": {
+    "defaultMessage": "No student photos found for this student.",
+    "description": "Shown when a student has no photos available"
+  },
+  "modal.photo.noSelection": {
+    "defaultMessage": "First select a photo in your Canva document.",
+    "description": "Error shown when the user opens the photo picker without selecting an image first"
+  },
+  "modal.photo.noStudent": {
+    "defaultMessage": "Choose a new photo for the selected image.",
+    "description": "Instructions shown when no specific student is identified"
+  },
+  "modal.photo.notLinked": {
+    "defaultMessage": "This selection is not a linked student photo. Select a photo inside a polaroid.",
+    "description": "Error shown when the selected image is not recognized as a student photo"
+  },
+  "modal.photo.replaceError": {
+    "defaultMessage": "Could not replace the selected photo.",
+    "description": "Error shown when replacing a student photo fails"
+  },
+  "modal.photo.reselect": {
+    "defaultMessage": "Please select a photo in your document again.",
+    "description": "Error asking the user to re-select a photo in the Canva document"
+  },
+  "modal.photo.title": {
+    "defaultMessage": "Replace student photo",
+    "description": "Title of the student photo replacement modal"
+  },
+  "modal.photo.withStudent": {
+    "defaultMessage": "Choose a photo for student {id}.",
+    "description": "Instructions shown when a specific student is identified"
+  },
+  "modal.tape.description": {
+    "defaultMessage": "Choose a maximum of 10 tapes.",
+    "description": "Instructions shown at the top of the tape picker modal"
+  },
+  "modal.tape.loadError": {
+    "defaultMessage": "Could not load tapes.",
+    "description": "Error shown when the tape images fail to load"
+  },
+  "modal.tape.maxWarning": {
+    "defaultMessage": "You can select a maximum of 10 tapes.",
+    "description": "Warning shown when the user tries to select more than 10 tapes"
+  },
+  "modal.tape.noAccount": {
+    "defaultMessage": "Connect your account first to load tapes.",
+    "description": "Error shown when trying to open the tape picker without a connected account"
+  },
+  "modal.tape.title": {
+    "defaultMessage": "Choose tapes",
+    "description": "Title of the tape picker modal"
+  },
+  "ostuYh": {
+    "defaultMessage": "This feature is not supported in the current page",
+    "description": "Tooltip label for when a feature is not supported in the current design"
+  },
+  "settings.background.button": {
+    "defaultMessage": "Set background",
+    "description": "Button to open the background picker"
+  },
+  "settings.background.label": {
+    "defaultMessage": "Set background",
+    "description": "Label for the background picker section in Settings"
+  },
+  "settings.background.none": {
+    "defaultMessage": "No background selected yet.",
+    "description": "Shown when no background has been chosen"
+  },
+  "settings.background.selected": {
+    "defaultMessage": "Selected: {name}",
+    "description": "Shows the name of the currently selected background"
+  },
+  "settings.bodyFont.label": {
+    "defaultMessage": "Font for body text",
+    "description": "Label for the body text font picker in Settings"
+  },
+  "settings.cardBgColor.description": {
+    "defaultMessage": "Color of the cards and text blocks on generated pages. (default: white)",
+    "description": "Description for the card background color setting"
+  },
+  "settings.cardBgColor.label": {
+    "defaultMessage": "Card background color",
+    "description": "Label for the card background color picker in Settings"
+  },
+  "settings.cardBgColor.opacity": {
+    "defaultMessage": "Opacity: {value}%",
+    "description": "Shows the current opacity percentage for the card background color"
+  },
+  "settings.font.clear": {
+    "defaultMessage": "Clear",
+    "description": "Button to remove the currently selected font and revert to default"
+  },
+  "settings.font.default": {
+    "defaultMessage": "Default (click to choose)",
+    "description": "Button label when no custom font has been selected yet"
+  },
+  "settings.headingFont.label": {
+    "defaultMessage": "Font for headings",
+    "description": "Label for the heading font picker in Settings"
+  },
+  "settings.reportFooter.label": {
+    "defaultMessage": "Text below report",
+    "description": "Label for the footer text field that appears below the report"
+  },
+  "settings.reportFooter.placeholder": {
+    "defaultMessage": "Text that appears at the bottom of the 1st page in a white box (optional)",
+    "description": "Placeholder for the report footer text input"
+  },
+  "settings.reportTitle.label": {
+    "defaultMessage": "Report title",
+    "description": "Label for the report title input field"
+  },
+  "settings.tapes.button": {
+    "defaultMessage": "Choose tapes",
+    "description": "Button to open the tape picker"
+  },
+  "settings.tapes.label": {
+    "defaultMessage": "Choose tapes",
+    "description": "Label for the tape picker section in Settings"
+  },
+  "settings.tapes.none": {
+    "defaultMessage": "No tapes selected yet.",
+    "description": "Shown when no tapes have been chosen"
+  },
+  "settings.tapes.selected": {
+    "defaultMessage": "{count} of 10 selected",
+    "description": "Shows how many tapes are currently selected out of the maximum of 10"
+  },
+  "settings.teacherName.label": {
+    "defaultMessage": "Teacher name",
+    "description": "Label for the teacher name input field in the Settings screen"
+  },
+  "settings.teacherName.placeholder": {
+    "defaultMessage": "E.g. Ms. Jansen",
+    "description": "Placeholder for the teacher name input, showing an example name"
+  },
+  "support.connect.button": {
+    "defaultMessage": "Connect",
+    "description": "Button to submit the connection code and link the account"
+  },
+  "support.connect.codeLabel": {
+    "defaultMessage": "Your connection code",
+    "description": "Label above the connection code input field"
+  },
+  "support.connect.error": {
+    "defaultMessage": "Invalid connection code. Check if you copied the correct code from the app.",
+    "description": "Error shown when the user enters an invalid connection code"
+  },
+  "support.connect.label": {
+    "defaultMessage": "Connect MijnKleutergroep account",
+    "description": "Heading for the account connection section"
+  },
+  "support.description": {
+    "defaultMessage": "Use this Canva plugin to generate student pages from MijnKleutergroep.",
+    "description": "Short description of what this plugin does, shown in the Support tab"
+  },
+  "support.disconnect.button": {
+    "defaultMessage": "Disconnect",
+    "description": "Button to unlink the currently connected MijnKleutergroep account"
+  },
+  "support.title": {
+    "defaultMessage": "Information & Support",
+    "description": "Title of the Support tab"
+  },
+  "tabs.customize": {
+    "defaultMessage": "Customize",
+    "description": "Label for the Customize tab"
+  },
+  "tabs.generate": {
+    "defaultMessage": "Generate",
+    "description": "Label for the Generate tab"
+  }
+}
