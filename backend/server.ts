@@ -1,5 +1,4 @@
 import express from "express";
-import crypto from "crypto";
 import cors from "cors";
 
 const app = express();
@@ -10,7 +9,6 @@ const APP_ORIGIN = process.env.CANVA_APP_ORIGIN ?? "http://localhost:8080";
 
 app.use(express.json());
 
-// Alleen verzoeken van de Canva plugin toestaan
 app.use(
   cors({
     origin: APP_ORIGIN,
@@ -19,96 +17,53 @@ app.use(
   })
 );
 
-// ─── API key helpers ───────────────────────────────────────────────────────────
+// ─── OAuth Bearer-token validatie ─────────────────────────────────────────────
 
 /**
- * Genereer een nieuwe API-sleutel voor een gebruiker.
- * Formaat: "<userId>.<32 random bytes als hex>"
- * Sla in de database ALLEEN de hash op (sha256), nooit de sleutel zelf.
+ * Haal het Bearer-token op uit de Authorization-header.
+ * In productie zou je dit token valideren via het OAuth-introspectie-endpoint
+ * van de SCV-server (https://scv.silvas.dev/oauth/v1/token).
+ * Voor de lokale dev-mock accepteren we elk geldig-uitziend Bearer-token.
  */
-export function generateApiKey(userId: string): string {
-  const secret = crypto.randomBytes(32).toString("hex");
-  return `${userId}.${secret}`;
-}
-
-function sha256(value: string): string {
-  return crypto.createHash("sha256").update(value).digest("hex");
-}
-
-/**
- * Haal userId op uit de Authorization header en valideer de sleutel.
- * Geeft de userId terug als de sleutel geldig is, anders null.
- *
- * Vervang de mock DB-opzoeking hieronder door je eigen database query:
- *   SELECT user_id FROM api_keys WHERE user_id = ? AND key_hash = ?
- */
-async function validateApiKey(authHeader: string | undefined): Promise<string | null> {
+function extractBearerToken(authHeader: string | undefined): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
-
-  const key = authHeader.slice(7); // verwijder "Bearer "
-  const [userId] = key.split(".");
-  if (!userId) return null;
-
-  const keyHash = sha256(key);
-
-  // ── Vervang dit door je eigen DB-query ─────────────────────────────────────
-  const row = await mockDb.findApiKey(userId, keyHash);
-  // ───────────────────────────────────────────────────────────────────────────
-
-  return row ? userId : null;
+  const token = authHeader.slice(7).trim();
+  return token.length > 0 ? token : null;
 }
 
-// Middleware die elke route beveiligt
 async function requireAuth(
   req: express.Request,
   res: express.Response,
   next: express.NextFunction
 ) {
-  const userId = await validateApiKey(req.headers.authorization);
-  if (!userId) {
-    res.status(401).json({ error: "Ongeldige of ontbrekende API-sleutel." });
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token) {
+    res.status(401).json({ error: "Geen geldig Bearer-token aanwezig." });
     return;
   }
-  // Zet userId op het request-object zodat routes het kunnen gebruiken
-  (req as any).userId = userId;
+  // Token doorsturen naar volgende route-handler
+  (req as any).accessToken = token;
   next();
 }
 
 // ─── Mock database (vervang door jouw echte DB) ────────────────────────────────
 
 const mockDb = {
-  // Simuleer opgeslagen sleutels: { userId -> keyHash }
-  // In productie: query je database
-  _keys: new Map<string, string>(),
-
-  async findApiKey(userId: string, keyHash: string): Promise<boolean> {
-    return this._keys.get(userId) === keyHash;
-  },
-
-  async saveApiKey(userId: string, keyHash: string): Promise<void> {
-    this._keys.set(userId, keyHash);
-  },
-
-  // Simuleer leerlingen per gebruiker
-  async getStudents(
-    userId: string,
-    groupId?: string,
-  ): Promise<any[]> {
-    // Vervang door: SELECT * FROM students WHERE teacher_id = ? AND group_id = ?
-    let students = MOCK_STUDENTS.filter((s) => s.teacherId === userId);
-    if (groupId) {
+  async getStudents(groupId?: string): Promise<any[]> {
+    // Vervang door: SELECT * FROM students WHERE group_id = ?
+    let students = MOCK_STUDENTS;
+    if (groupId && groupId !== "0") {
       students = students.filter((s) => s.group === groupId);
     }
     return students;
   },
 
-  async getGroups(userId: string): Promise<any[]> {
-    const students = await this.getStudents(userId);
+  async getGroups(): Promise<any[]> {
     const groupMap = new Map<string, number>();
-    for (const s of students) {
+    for (const s of MOCK_STUDENTS) {
       groupMap.set(s.group, (groupMap.get(s.group) ?? 0) + 1);
     }
-    return Array.from(groupMap.entries()).map(([name, count], i) => ({
+    return Array.from(groupMap.entries()).map(([name, count]) => ({
       id: name,
       name,
       studentCount: count,
@@ -116,41 +71,16 @@ const mockDb = {
   },
 };
 
-// ─── Voorbeeld: API-sleutel aanmaken voor een gebruiker ───────────────────────
-// Roep dit aan vanuit jouw eigen app wanneer de juf haar koppelcode opvraagt.
-
-export async function createApiKeyForUser(userId: string): Promise<string> {
-  const key = generateApiKey(userId);
-  const keyHash = sha256(key);
-  await mockDb.saveApiKey(userId, keyHash);
-  return key; // stuur dit terug naar de juf (alleen deze keer zichtbaar)
-}
-
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-/**
- * Valideer een API-sleutel.
- * De Canva plugin roept dit aan direct na het plakken van de koppelcode.
- */
-app.get("/api/validate", requireAuth, (req, res) => {
-  res.json({ ok: true, userId: (req as any).userId });
-});
-
-/**
- * Geef alle klassen terug voor de ingelogde juf.
- */
-app.get("/api/groups", requireAuth, async (req, res) => {
-  const groups = await mockDb.getGroups((req as any).userId);
+app.get("/api/groups", requireAuth, async (_req, res) => {
+  const groups = await mockDb.getGroups();
   res.json(groups);
 });
 
-/**
- * Geef alle leerlingen terug voor de ingelogde juf, inclusief observaties.
- * Optioneel gefilterd op group_id query parameter.
- */
 app.get("/api/students", requireAuth, async (req, res) => {
   const groupId = req.query.group_id as string | undefined;
-  const students = await mockDb.getStudents((req as any).userId, groupId);
+  const students = await mockDb.getStudents(groupId);
   res.json(students);
 });
 
@@ -165,7 +95,6 @@ app.listen(PORT, () => {
 const MOCK_STUDENTS = [
   {
     id: "leerling-1",
-    teacherId: "user-demo",
     name: "Emma de Vries",
     birthDate: "2020-03-12",
     group: "Groep 1A",
@@ -193,7 +122,6 @@ const MOCK_STUDENTS = [
   },
   {
     id: "leerling-2",
-    teacherId: "user-demo",
     name: "Liam Bakker",
     birthDate: "2020-07-04",
     group: "Groep 1A",
@@ -215,7 +143,6 @@ const MOCK_STUDENTS = [
   },
   {
     id: "leerling-3",
-    teacherId: "user-demo",
     name: "Sofie Janssen",
     birthDate: "2020-01-28",
     group: "Groep 1B",

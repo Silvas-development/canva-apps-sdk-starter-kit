@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { auth } from "@canva/user";
 import { addPage, getDesignMetadata, openDesign } from "@canva/design";
 import { upload, requestFontSelection } from "@canva/asset";
 import { useSelection, useFeatureSupport } from "@canva/app-hooks";
@@ -156,7 +157,6 @@ type GroeigrafiekItem = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "kleuterapp_api_key";
 const BACKGROUND_STORAGE_KEY = "kleuterapp_background";
 const TAPES_STORAGE_KEY = "kleuterapp_tapes";
 const TEACHER_NAME_STORAGE_KEY = "kleuterapp_teacher_name";
@@ -320,6 +320,11 @@ async function getCurrentPageTitle(): Promise<string | undefined> {
   });
 }
 
+// ─── OAuth ────────────────────────────────────────────────────────────────────
+
+const OAUTH_SCOPE = new Set<string>([]);
+const oauthClient = auth.initOauth();
+
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 type ApiAction =
@@ -357,13 +362,13 @@ function buildApiUrl(
 
 async function apiFetch(
   action: ApiAction,
-  apiKey: string,
   params?: Record<string, string | number>,
 ) {
+  const tokenResponse = await oauthClient.getAccessToken({ scope: OAUTH_SCOPE });
+  if (!tokenResponse) throw new Error("not_authenticated");
   const url = buildApiUrl(action, params);
-
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${tokenResponse.token}` },
   });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
@@ -560,37 +565,28 @@ function normalizeNiveauHandjesResponse(value: unknown): NiveauHandjesResponse |
   return Object.fromEntries(normalizedEntries);
 }
 
-async function fetchBackgrounds(apiKey: string): Promise<BackgroundOption[]> {
-  return apiFetch("BACKGROUNDS", apiKey) as Promise<BackgroundOption[]>;
+async function fetchBackgrounds(): Promise<BackgroundOption[]> {
+  return apiFetch("BACKGROUNDS") as Promise<BackgroundOption[]>;
 }
 
-async function fetchTapes(apiKey: string): Promise<TapeOption[]> {
-  return apiFetch("TAPES", apiKey) as Promise<TapeOption[]>;
+async function fetchTapes(): Promise<TapeOption[]> {
+  return apiFetch("TAPES") as Promise<TapeOption[]>;
 }
 
-async function fetchNiveaus(apiKey: string): Promise<NiveauOption[]> {
-  return apiFetch("NIVEAUS", apiKey) as Promise<NiveauOption[]>;
+async function fetchNiveaus(): Promise<NiveauOption[]> {
+  return apiFetch("NIVEAUS") as Promise<NiveauOption[]>;
 }
 
-async function fetchStudentPhotos(
-  apiKey: string,
-  studentId: string,
-): Promise<StudentPhoto[]> {
-  return apiFetch("LEERLINGPHOTOS", apiKey, {
-    leerling_id: studentId,
-  }) as Promise<StudentPhoto[]>;
+async function fetchStudentPhotos(studentId: string): Promise<StudentPhoto[]> {
+  return apiFetch("LEERLINGPHOTOS", { leerling_id: studentId }) as Promise<StudentPhoto[]>;
 }
 
-async function fetchStudents(
-  apiKey: string,
-  groupId?: string,
-): Promise<Student[]> {
+async function fetchStudents(groupId?: string): Promise<Student[]> {
   const params = groupId ? { group_id: groupId } : undefined;
-  return apiFetch("STUDENTS", apiKey, params) as Promise<Student[]>;
+  return apiFetch("STUDENTS", params) as Promise<Student[]>;
 }
 
 async function fetchNiveauHandjes(
-  apiKey: string,
   studentId: string,
   dateRange: ReportDateRange,
 ): Promise<NiveauHandjesResponse> {
@@ -652,7 +648,7 @@ async function fetchNiveauHandjes(
 
   for (let i = 0; i < requestVariants.length; i++) {
     const params = requestVariants[i];
-    const raw = await apiFetch("NIVEAUHANDJES", apiKey, params);
+    const raw = await apiFetch("NIVEAUHANDJES", params);
     const normalized = tryNormalize(raw);
     if (!normalized) {
       console.warn("[NIVEAUHANDJES] Kon response niet normaliseren", {
@@ -690,36 +686,33 @@ async function fetchNiveauHandjes(
 }
 
 async function fetchDoelomschrijvingen(
-  apiKey: string,
   studentId: string,
   dateRange: ReportDateRange,
 ): Promise<DoelomschrijvingRow[]> {
-  return apiFetch("DOELOMSCHRIJVING", apiKey, {
+  return apiFetch("DOELOMSCHRIJVING", {
     leerling_id: studentId,
     ...buildDateRangeParams(dateRange),
   }) as Promise<DoelomschrijvingRow[]>;
 }
 
 async function fetchOntwikkelniveaus(
-  apiKey: string,
   studentId: string,
   dateRange: ReportDateRange,
 ): Promise<OntwikkelniveauRow[]> {
-  return apiFetch("ONTWIKKELNIVEAUS", apiKey, {
+  return apiFetch("ONTWIKKELNIVEAUS", {
     leerling_id: studentId,
     ...buildDateRangeParams(dateRange),
   }) as Promise<OntwikkelniveauRow[]>;
 }
 
 async function fetchGroeigrafieken(
-  apiKey: string,
   studentId: string,
   dateRange: ReportDateRange,
 ): Promise<GroeigrafiekItem[]> {
   const van = toUnixTimestamp(dateRange.fromDate);
   const tot = toUnixTimestamp(dateRange.toDate, true);
   if (van == null || tot == null) return [];
-  const result = await apiFetch("GROEIGRAFIEKEN", apiKey, {
+  const result = await apiFetch("GROEIGRAFIEKEN", {
     leerling_id: studentId,
     van,
     tot,
@@ -727,8 +720,8 @@ async function fetchGroeigrafieken(
   return Array.isArray(result) ? (result as GroeigrafiekItem[]) : [];
 }
 
-async function fetchLogoUrl(apiKey: string): Promise<string | undefined> {
-  const data = await apiFetch("LOGO", apiKey) as { url?: string };
+async function fetchLogoUrl(): Promise<string | undefined> {
+  const data = await apiFetch("LOGO") as { url?: string };
   return data?.url;
 }
 
@@ -1297,7 +1290,6 @@ async function generateSelfDrawingPage(
 
 async function generateColoredLevelHandsPage(
   student: Student,
-  apiKey: string,
   dateRange: ReportDateRange,
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
@@ -1306,7 +1298,7 @@ async function generateColoredLevelHandsPage(
   bottomText = "",
 ) {
   const background = await createPageBackground(selectedBackground);
-  const niveauData = await fetchNiveauHandjes(apiKey, student.id, dateRange);
+  const niveauData = await fetchNiveauHandjes(student.id, dateRange);
   const dateEntries = Object.entries(niveauData)
     .map(([date, rows]) => ({
       date: date.trim(),
@@ -1559,14 +1551,13 @@ async function generateColoredLevelHandsPage(
 
 async function generateGoalDescriptionsPage(
   student: Student,
-  apiKey: string,
   dateRange: ReportDateRange,
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
   bodyFont: SelectedFont | null = null,
 ) {
   const background = await createPageBackground(selectedBackground);
-  const doelen = await fetchDoelomschrijvingen(apiKey, student.id, dateRange);
+  const doelen = await fetchDoelomschrijvingen(student.id, dateRange);
 
   const panelMargin = 36;
   const panelTop = 80;
@@ -1702,14 +1693,13 @@ async function generateGoalDescriptionsPage(
 
 async function generateGoalLevelsPage(
   student: Student,
-  apiKey: string,
   dateRange: ReportDateRange,
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
   bodyFont: SelectedFont | null = null,
 ) {
   const background = await createPageBackground(selectedBackground);
-  const doelen = await fetchOntwikkelniveaus(apiKey, student.id, dateRange);
+  const doelen = await fetchOntwikkelniveaus(student.id, dateRange);
 
   const margin = 36;
   const titleTop = 40;
@@ -1882,7 +1872,6 @@ async function generateGoalLevelsPage(
 
 async function generateGroeigrafiekenPage(
   student: Student,
-  apiKey: string,
   dateRange: ReportDateRange,
   selectedBackground?: BackgroundOption,
   headingFont: SelectedFont | null = null,
@@ -1890,7 +1879,7 @@ async function generateGroeigrafiekenPage(
   topText = "",
   bottomText = "",
 ) {
-  const charts = await fetchGroeigrafieken(apiKey, student.id, dateRange);
+  const charts = await fetchGroeigrafieken(student.id, dateRange);
   if (charts.length === 0) return;
 
   const outerMargin = 58;
@@ -2319,7 +2308,6 @@ async function addPageWithRetry(page: Parameters<typeof addPage>[0], maxRetries 
 async function generatePageForStudent(
   student: Student,
   templateId: Template["id"],
-  apiKey: string,
   dateRange: ReportDateRange,
   teacherName: string,
   reportTitle: string,
@@ -2392,22 +2380,22 @@ async function generatePageForStudent(
     }
 
     if (reportContentOptions.coloredLevelHands) {
-      await generateColoredLevelHandsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.coloredLevelHandsTopText, extraTexts.coloredLevelHandsBottomText);
+      await generateColoredLevelHandsPage(student, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.coloredLevelHandsTopText, extraTexts.coloredLevelHandsBottomText);
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.goalDescriptions) {
-      await generateGoalDescriptionsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont);
+      await generateGoalDescriptionsPage(student, dateRange, selectedBackground, headingFont, bodyFont);
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.goalLevels) {
-      await generateGoalLevelsPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont);
+      await generateGoalLevelsPage(student, dateRange, selectedBackground, headingFont, bodyFont);
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.studentGraphs) {
-      await generateGroeigrafiekenPage(student, apiKey, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.studentGraphsTopText, extraTexts.studentGraphsBottomText);
+      await generateGroeigrafiekenPage(student, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.studentGraphsTopText, extraTexts.studentGraphsBottomText);
       await delay(THROTTLE_MS);
     }
   }
@@ -2717,7 +2705,7 @@ function SettingsScreen({
 
 // 2. Genereren
 type GenerateScreenProps = {
-  apiKey: string;
+  isAuthenticated: boolean;
   onGenerate: (students: Student[], template: Template["id"], extraTexts: PageExtraTexts) => void;
   generationError?: string;
 
@@ -2729,7 +2717,7 @@ type GenerateScreenProps = {
 };
 
 function GenerateScreen({
-  apiKey,
+  isAuthenticated,
   onGenerate,
   generationError,
   reportContentOptions,
@@ -2754,7 +2742,7 @@ function GenerateScreen({
   const [studentGraphsBottomText, setStudentGraphsBottomText] = useState("");
 
   useEffect(() => {
-    if (!apiKey) {
+    if (!isAuthenticated) {
       setGroups([]);
       setGroupStudents([]);
       setAllStudents([]);
@@ -2771,8 +2759,8 @@ function GenerateScreen({
       setLoadError("");
       try {
         const [groupData, allStudentsData] = await Promise.all([
-          apiFetch("GROUPS", apiKey) as Promise<Group[]>,
-          fetchStudents(apiKey, "0"),
+          apiFetch("GROUPS") as Promise<Group[]>,
+          fetchStudents("0"),
         ]);
 
         setGroups(groupData);
@@ -2807,10 +2795,10 @@ function GenerateScreen({
       }
     };
     load();
-  }, [apiKey]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!apiKey || !selectedGroup) {
+    if (!isAuthenticated || !selectedGroup) {
       setGroupStudents([]);
       return;
     }
@@ -2819,7 +2807,7 @@ function GenerateScreen({
 
     const loadGroupStudents = async () => {
       try {
-        const studentData = await fetchStudents(apiKey, selectedGroup);
+        const studentData = await fetchStudents(selectedGroup);
         if (!cancelled) {
           setGroupStudents(studentData);
         }
@@ -2840,7 +2828,7 @@ function GenerateScreen({
     return () => {
       cancelled = true;
     };
-  }, [apiKey, selectedGroup]);
+  }, [isAuthenticated, selectedGroup]);
 
   const selectedStudent = allStudents.find((student) => student.id === selectedStudentId);
   const studentsToGenerate =
@@ -2854,7 +2842,7 @@ function GenerateScreen({
   );
 
   if (loading) return <LoadingIndicator />;
-  if (!apiKey) {
+  if (!isAuthenticated) {
     return (
       <Rows spacing="2u">
         <Text variant="bold" size="large">
@@ -3303,34 +3291,25 @@ function GenerateScreen({
 }
 
 function SupportScreen({
-  apiKey,
-  onConnected,
+  isAuthenticated,
+  onLogin,
   onDisconnect,
 }: {
-  apiKey: string;
-  onConnected: (key: string) => void;
-  onDisconnect: () => void;
+  isAuthenticated: boolean;
+  onLogin: () => Promise<void>;
+  onDisconnect: () => Promise<void>;
 }) {
   const intl = useIntl();
-  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const connect = async () => {
-    const key = input.trim();
-    if (!key) return;
+  const handleLogin = async () => {
     setLoading(true);
     setError("");
     try {
-      await apiFetch("VALIDATE", key);
-      localStorage.setItem(STORAGE_KEY, key);
-      onConnected(key);
-    } catch {
-      setError(intl.formatMessage({
-        id: "support.connect.error",
-        defaultMessage: "Invalid connection code. Check if you copied the correct code from the app.",
-        description: "Error shown when the user enters an invalid connection code",
-      }));
+      await onLogin();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -3363,44 +3342,25 @@ function SupportScreen({
             description="Heading for the account connection section"
           />
         </Text>
-        {!apiKey && (
+        {!isAuthenticated && (
           <>
-            <Rows spacing="1u">
-              <Text variant="bold">
-                <FormattedMessage
-                  id="support.connect.codeLabel"
-                  defaultMessage="Your connection code"
-                  description="Label above the connection code input field"
-                />
-              </Text>
-              <TextInput
-                value={input}
-                onChange={(v) => {
-                  setInput(v);
-                  setError("");
-                }}
-                placeholder="u123.a9f3d8c2e1b4..."
-              />
-              {error && <Text tone="critical">{error}</Text>}
-            </Rows>
-
+            {error && <Text tone="critical">{error}</Text>}
             <Button
               variant="primary"
-              onClick={connect}
+              onClick={handleLogin}
               loading={loading}
               stretch
-              disabled={!input.trim()}
             >
               {intl.formatMessage({
                 id: "support.connect.button",
-                defaultMessage: "Connect",
-                description: "Button to submit the connection code and link the account",
+                defaultMessage: "Log in with MijnKleutergroep",
+                description: "Button to start the OAuth login flow",
               })}
             </Button>
           </>
         )}
 
-        {apiKey && (
+        {isAuthenticated && (
           <Button variant="secondary" onClick={onDisconnect} stretch>
             {intl.formatMessage({
               id: "support.disconnect.button",
@@ -3418,7 +3378,6 @@ function SupportScreen({
 function GeneratingScreen({
   students,
   templateId,
-  apiKey,
   reportDateRange,
   teacherName,
   reportTitle,
@@ -3440,7 +3399,6 @@ function GeneratingScreen({
 }: {
   students: Student[];
   templateId: Template["id"];
-  apiKey: string;
   reportDateRange: ReportDateRange;
   teacherName: string;
   reportTitle: string;
@@ -3478,7 +3436,6 @@ function GeneratingScreen({
           const refs = await generatePageForStudent(
             student,
             templateId,
-            apiKey,
             reportDateRange,
             teacherName,
             reportTitle,
@@ -3643,13 +3600,21 @@ export const App = () => {
   const imageSelectionCount = imageSelection?.count ?? 0;
   const isSupported = useFeatureSupport();
   const canAddPage = isSupported(addPage);
-  const [apiKey, setApiKey] = useState<string>(() =>
-    localStorage.getItem(STORAGE_KEY) ?? ""
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [appState, setAppState] = useState<AppState>("idle");
-  const [activeTab, setActiveTab] = useState<AppTab>(
-    apiKey ? "generate" : "settings",
-  );
+  const [activeTab, setActiveTab] = useState<AppTab>("settings");
+
+  // Controleer bij opstarten of de gebruiker al is ingelogd
+  useEffect(() => {
+    oauthClient.getAccessToken({ scope: OAUTH_SCOPE })
+      .then((token) => {
+        if (token) {
+          setIsAuthenticated(true);
+          setActiveTab("generate");
+        }
+      })
+      .catch(() => {/* niet ingelogd */});
+  }, []);
   const [generatePayload, setGeneratePayload] = useState<{
     students: Student[];
     templateId: Template["id"];
@@ -3776,14 +3741,14 @@ export const App = () => {
   const lastAutoHandledSelection = React.useRef("");
   const isAutoHandlingSelection = React.useRef(false);
 
-  // Fetch and upload school logo once the API key is available
+  // Fetch and upload school logo once authenticated
   useEffect(() => {
-    if (!apiKey) return;
+    if (!isAuthenticated) return;
     let cancelled = false;
     setLogoRef(undefined);
     setLogoAspectRatio(undefined);
 
-    fetchLogoUrl(apiKey)
+    fetchLogoUrl()
       .then((url) => {
         if (!url || cancelled) return;
         return Promise.all([uploadLogo(url), resolveImageAspectRatio(url)]);
@@ -3798,7 +3763,7 @@ export const App = () => {
         // Logo is non-critical; silently ignore errors
       });
     return () => { cancelled = true; };
-  }, [apiKey]);
+  }, [isAuthenticated]);
 
   const rememberStudentPhotoRef = (studentId: string, ref: unknown) => {
     const keys = imageRefKeys(ref);
@@ -3864,16 +3829,14 @@ export const App = () => {
     return studentNameIdMap[pageTitle.trim().toLowerCase()];
   };
 
-  const resolveStudentIdFromStudentsByPageTitle = async (
-    key: string,
-  ): Promise<string | undefined> => {
+  const resolveStudentIdFromStudentsByPageTitle = async (): Promise<string | undefined> => {
     const pageTitle = await getCurrentPageTitle();
     const normalized = pageTitle?.trim().toLowerCase();
     if (!normalized) {
       return undefined;
     }
 
-    const students = await fetchStudents(key);
+    const students = await fetchStudents();
     const match = students.find(
       (student) => student.name.trim().toLowerCase() === normalized,
     );
@@ -3886,16 +3849,20 @@ export const App = () => {
     return match.id;
   };
 
-  const handleConnected = (key: string) => {
-    setApiKey(key);
+  const handleLogin = async () => {
+    await oauthClient.requestAuthorization({ scope: OAUTH_SCOPE });
+    const token = await oauthClient.getAccessToken({ scope: OAUTH_SCOPE });
+    if (!token) {
+      throw new Error("No access token received after authorization.");
+    }
+    setIsAuthenticated(true);
     setAppState("idle");
     setActiveTab("generate");
     setGenerationError("");
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     [
-      STORAGE_KEY,
       BACKGROUND_STORAGE_KEY,
       TAPES_STORAGE_KEY,
       TEACHER_NAME_STORAGE_KEY,
@@ -3911,7 +3878,8 @@ export const App = () => {
       NIVEAU_HAND_REF_MAP_STORAGE_KEY,
     ].forEach((key) => localStorage.removeItem(key));
     niveauHandRefToColor.clear();
-    setApiKey("");
+    await oauthClient.deauthorize();
+    setIsAuthenticated(false);
     setAppState("idle");
     setActiveTab("settings");
     setGeneratePayload(null);
@@ -3921,7 +3889,7 @@ export const App = () => {
   const openBackgroundPicker = async () => {
     setIsBackgroundModalOpen(true);
 
-    if (!apiKey) {
+    if (!isAuthenticated) {
       setBackgroundsError(intl.formatMessage({
         id: "modal.background.noAccount",
         defaultMessage: "Connect your account first to load backgrounds.",
@@ -3938,7 +3906,7 @@ export const App = () => {
     setBackgroundsError("");
 
     try {
-      const options = await fetchBackgrounds(apiKey);
+      const options = await fetchBackgrounds();
       setBackgroundOptions(options);
     } catch {
       setBackgroundsError(intl.formatMessage({
@@ -3961,7 +3929,7 @@ export const App = () => {
     setIsTapeModalOpen(true);
     setTapesWarning("");
 
-    if (!apiKey) {
+    if (!isAuthenticated) {
       setTapesError(intl.formatMessage({
         id: "modal.tape.noAccount",
         defaultMessage: "Connect your account first to load tapes.",
@@ -3978,7 +3946,7 @@ export const App = () => {
     setTapesError("");
 
     try {
-      const options = await fetchTapes(apiKey);
+      const options = await fetchTapes();
       setTapeOptions(options);
     } catch {
       setTapesError(intl.formatMessage({
@@ -4078,7 +4046,7 @@ export const App = () => {
   }, [bodyFont]);
 
   const openStudentPhotoPicker = async () => {
-    if (!apiKey) {
+    if (!isAuthenticated) {
       setStudentPhotos([]);
       setStudentPhotosError(intl.formatMessage({
         id: "modal.photo.noAccount",
@@ -4127,7 +4095,7 @@ export const App = () => {
         return;
       }
 
-      const photos = await fetchStudentPhotos(apiKey, studentId);
+      const photos = await fetchStudentPhotos(studentId);
       setSelectedStudentId(studentId);
       setStudentPhotos(photos);
       if (photos.length === 0) {
@@ -4153,7 +4121,7 @@ export const App = () => {
   };
 
   const handleStudentSelectionForPhotos = async (student: Student) => {
-    if (!apiKey) {
+    if (!isAuthenticated) {
       return;
     }
 
@@ -4161,7 +4129,7 @@ export const App = () => {
     setStudentPhotosError("");
     try {
       rememberStudentNameId(student.id, student.name);
-      const photos = await fetchStudentPhotos(apiKey, student.id);
+      const photos = await fetchStudentPhotos(student.id);
       setSelectedStudentId(student.id);
       setStudentPhotos(photos);
       if (photos.length === 0) {
@@ -4218,7 +4186,7 @@ export const App = () => {
   };
 
   const openNiveauHandPicker = async (knownColor?: string) => {
-    if (!apiKey) {
+    if (!isAuthenticated) {
       setNiveauOptions([]);
       setNiveauOptionsError(intl.formatMessage({
         id: "modal.niveau.noAccount",
@@ -4261,7 +4229,7 @@ export const App = () => {
         }
       }
 
-      const options = await fetchNiveaus(apiKey);
+      const options = await fetchNiveaus();
       setSelectedNiveauColor(initialColor ? normalizeNiveauColor(initialColor) : "");
       setNiveauOptions(options);
       if (!initialColor) {
@@ -4338,7 +4306,7 @@ export const App = () => {
   useEffect(() => {
     const autoHandleSelection = async () => {
       if (
-        !apiKey ||
+        !isAuthenticated ||
         appState === "generating" ||
         imageSelectionCount === 0 ||
         isPhotoModalOpen ||
@@ -4400,7 +4368,7 @@ export const App = () => {
       window.clearInterval(intervalId);
     };
   }, [
-    apiKey,
+    isAuthenticated,
     appState,
     imageSelectionCount,
     imageSelection,
@@ -4527,7 +4495,6 @@ export const App = () => {
               <GeneratingScreen
                 students={generatePayload.students}
                 templateId={generatePayload.templateId}
-                apiKey={apiKey}
                 reportDateRange={reportDateRange}
                 teacherName={teacherName}
                 reportTitle={reportTitle.trim() || DEFAULT_REPORT_TITLE}
@@ -4554,7 +4521,7 @@ export const App = () => {
               />
             ) : (
               <GenerateScreen
-                apiKey={apiKey}
+                isAuthenticated={isAuthenticated}
                 onGenerate={handleGenerate}
                 generationError={generationError}
                 reportContentOptions={reportContentOptions}
@@ -4609,8 +4576,8 @@ export const App = () => {
                 </Button>
               </Rows>
               <SupportScreen
-                apiKey={apiKey}
-                onConnected={handleConnected}
+                isAuthenticated={isAuthenticated}
+                onLogin={handleLogin}
                 onDisconnect={handleDisconnect}
               />
             </Rows>
