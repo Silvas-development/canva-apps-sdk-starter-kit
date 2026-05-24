@@ -435,6 +435,30 @@
     "defaultMessage": "Customize",
     "description": "Label for the Customize tab"
   },
+  "template.groei.description": {
+    "defaultMessage": "Table with scores per domain",
+    "description": "Description for the Growth overview template"
+  },
+  "template.groei.label": {
+    "defaultMessage": "Growth overview",
+    "description": "Label for the Growth overview template"
+  },
+  "template.portfolio.description": {
+    "defaultMessage": "Large photo with latest note",
+    "description": "Description for the Portfolio template"
+  },
+  "template.portfolio.label": {
+    "defaultMessage": "Portfolio",
+    "description": "Label for the Portfolio template"
+  },
+  "template.rapport.description": {
+    "defaultMessage": "Photo + name + observations per domain",
+    "description": "Description for the Custom report template"
+  },
+  "template.rapport.label": {
+    "defaultMessage": "Custom report",
+    "description": "Label for the Custom report template"
+  },
   "tabs.generate": {
     "defaultMessage": "Generate",
     "description": "Label for the Generate tab"

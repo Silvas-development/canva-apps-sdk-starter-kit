@@ -81,7 +81,9 @@ type Template = {
   id: "rapport" | "portfolio" | "groei";
   emoji: string;
   label: string;
+  labelId: string;
   description: string;
+  descriptionId: string;
 };
 
 type AppState =
@@ -218,19 +220,25 @@ const TEMPLATES: Template[] = [
     id: "rapport",
     emoji: "📄",
     label: "Custom report",
+    labelId: "template.rapport.label",
     description: "Photo + name + observations per domain",
+    descriptionId: "template.rapport.description",
   },
   {
     id: "portfolio",
     emoji: "🖼️",
     label: "Portfolio",
+    labelId: "template.portfolio.label",
     description: "Large photo with latest note",
+    descriptionId: "template.portfolio.description",
   },
   {
     id: "groei",
     emoji: "📈",
     label: "Growth overview",
+    labelId: "template.groei.label",
     description: "Table with scores per domain",
+    descriptionId: "template.groei.description",
   },
 ];
 
@@ -3077,8 +3085,8 @@ function GenerateScreen({
               }}
               onClick={() => setSelectedTemplate(t.id)}
             >
-              <Text variant="bold">{t.emoji} {t.label}</Text>
-              <Text tone="tertiary">{t.description}</Text>
+              <Text variant="bold">{t.emoji} {intl.formatMessage({ id: t.labelId, defaultMessage: t.label })}</Text>
+              <Text tone="tertiary">{intl.formatMessage({ id: t.descriptionId, defaultMessage: t.description })}</Text>
             </Box>
           ))}
         </Rows>
