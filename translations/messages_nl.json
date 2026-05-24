@@ -1,20 +1,4 @@
 {
-  "+TOtT2": {
-    "defaultMessage": "Open Canva Apps SDK-documentatie",
-    "description": "Button text to open Canva Apps SDK docs. Opens an external URL when pressed."
-  },
-  "Hq2Ipf": {
-    "defaultMessage": "Doe iets cools",
-    "description": "Button text to do something cool. Creates a new text element when pressed."
-  },
-  "WLxpPq": {
-    "defaultMessage": "Om wijzigingen aan te brengen in deze app, bewerk je het <code>src/app.tsx</code>-bestand. Sluit de app daarna en open hem opnieuw in de editor om de wijzigingen te bekijken.",
-    "description": "Instructions for how to make changes to the app. Do not translate <code>src/app.tsx</code>."
-  },
-  "ostuYh": {
-    "defaultMessage": "Deze functie wordt niet ondersteund op de huidige pagina",
-    "description": "Tooltip label for when a feature is not supported in the current design"
-  },
   "customize.changeHandColor.button": {
     "defaultMessage": "Kleur van geselecteerd handje wijzigen",
     "description": "Button to open the level hand color picker"
@@ -331,6 +315,10 @@
     "defaultMessage": "Tapes kiezen",
     "description": "Title of the tape picker modal"
   },
+  "report.defaultTitle": {
+    "defaultMessage": "Kijk wat ik al kan!",
+    "description": "Default report title shown as placeholder and fallback"
+  },
   "settings.background.button": {
     "defaultMessage": "Achtergrond instellen",
     "description": "Button to open the background picker"
@@ -446,5 +434,9 @@
   "tabs.generate": {
     "defaultMessage": "Genereren",
     "description": "Label for the Generate tab"
+  },
+  "tabs.layout": {
+    "defaultMessage": "Lay-out",
+    "description": "Label for the Layout tab"
   }
 }

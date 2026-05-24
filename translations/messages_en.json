@@ -1,16 +1,4 @@
 {
-  "+TOtT2": {
-    "defaultMessage": "Open Canva Apps SDK docs",
-    "description": "Button text to open Canva Apps SDK docs. Opens an external URL when pressed."
-  },
-  "Hq2Ipf": {
-    "defaultMessage": "Do something cool",
-    "description": "Button text to do something cool. Creates a new text element when pressed."
-  },
-  "WLxpPq": {
-    "defaultMessage": "To make changes to this app, edit the <code>src/app.tsx</code> file, then close and reopen the app in the editor to preview the changes.",
-    "description": "Instructions for how to make changes to the app. Do not translate <code>src/app.tsx</code>."
-  },
   "customize.changeHandColor.button": {
     "defaultMessage": "Change color of selected hand",
     "description": "Button to open the level hand color picker"
@@ -331,6 +319,10 @@
     "defaultMessage": "This feature is not supported in the current page",
     "description": "Tooltip label for when a feature is not supported in the current design"
   },
+  "report.defaultTitle": {
+    "defaultMessage": "Look what I can already do!",
+    "description": "Default report title shown as placeholder and fallback"
+  },
   "settings.background.button": {
     "defaultMessage": "Set background",
     "description": "Button to open the background picker"
@@ -446,5 +438,9 @@
   "tabs.generate": {
     "defaultMessage": "Generate",
     "description": "Label for the Generate tab"
+  },
+  "tabs.layout": {
+    "defaultMessage": "Layout",
+    "description": "Label for the Layout tab"
   }
 }

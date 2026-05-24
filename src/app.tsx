@@ -122,6 +122,8 @@ type NiveauHandjeRow = {
 
 type NiveauHandjesResponse = Record<string, NiveauHandjeRow[]>;
 
+type ValidateResponse = Record<string, unknown> & { email?: string };
+
 type NiveauHandjeRowInput = {
   date?: unknown;
   datum?: unknown;
@@ -171,8 +173,8 @@ const STUDENT_PHOTO_REF_MAP_STORAGE_KEY = "kleuterapp_student_photo_ref_map";
 const STUDENT_NAME_ID_MAP_STORAGE_KEY = "kleuterapp_student_name_id_map";
 const NIVEAU_HAND_REF_MAP_STORAGE_KEY = "kleuterapp_niveau_hand_ref_map";
 const CARD_BG_COLOR_STORAGE_KEY = "kleuterapp_card_bg_color";
+const CONNECTED_EMAIL_STORAGE_KEY = "kleuterapp_connected_email";
 const CARD_BG_ALPHA_STORAGE_KEY = "kleuterapp_card_bg_alpha";
-const DEFAULT_REPORT_TITLE = "Look what I can already do!";
 const DEFAULT_REPORT_CONTENT_OPTIONS: ReportContentOptions = {
   photoPage: true,
   extraPhotosPage: false,
@@ -370,8 +372,16 @@ async function apiFetch(
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${tokenResponse.token}` },
   });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
+  const body = await res.text();
+  console.log(`[apiFetch] ${action} → HTTP ${res.status}\n`, body);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${body}`);
+  }
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new Error(`HTTP ${res.status} — invalid JSON: ${body}`);
+  }
 }
 
 function toUnixTimestamp(date: string, endOfDay = false): number | undefined {
@@ -2503,7 +2513,11 @@ function SettingsScreen({
         <TextInput
           value={reportTitle}
           onChange={onReportTitleChange}
-          placeholder={DEFAULT_REPORT_TITLE}
+          placeholder={intl.formatMessage({
+            id: "report.defaultTitle",
+            defaultMessage: "Look what I can already do!",
+            description: "Default report title shown as placeholder and fallback",
+          })}
         />
       </Rows>
 
@@ -2784,12 +2798,15 @@ function GenerateScreen({
           setSelectedGroup("");
           setGroupStudents([]);
         }
-      } catch {
-        setLoadError(intl.formatMessage({
-          id: "generate.loadError",
-          defaultMessage: "Could not retrieve data. Check your connection.",
-          description: "Error shown when the app fails to load groups and students",
-        }));
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        setLoadError(
+          intl.formatMessage({
+            id: "generate.loadError",
+            defaultMessage: "Could not retrieve data. Check your connection.",
+            description: "Error shown when the app fails to load groups and students",
+          }) + (detail ? ` (${detail})` : "")
+        );
       } finally {
         setLoading(false);
       }
@@ -3292,10 +3309,12 @@ function GenerateScreen({
 
 function SupportScreen({
   isAuthenticated,
+  connectedEmail,
   onLogin,
   onDisconnect,
 }: {
   isAuthenticated: boolean;
+  connectedEmail: string;
   onLogin: () => Promise<void>;
   onDisconnect: () => Promise<void>;
 }) {
@@ -3360,6 +3379,9 @@ function SupportScreen({
           </>
         )}
 
+        {isAuthenticated && connectedEmail && (
+          <Text tone="secondary">{connectedEmail}</Text>
+        )}
         {isAuthenticated && (
           <Button variant="secondary" onClick={onDisconnect} stretch>
             {intl.formatMessage({
@@ -3562,6 +3584,10 @@ function GeneratingScreen({
 // 4. Done screen
 function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
   const intl = useIntl();
+  useEffect(() => {
+    const timer = setTimeout(onBack, 4000);
+    return () => clearTimeout(timer);
+  }, [onBack]);
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
@@ -3601,16 +3627,25 @@ export const App = () => {
   const isSupported = useFeatureSupport();
   const canAddPage = isSupported(addPage);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [connectedEmail, setConnectedEmail] = useState<string>(
+    () => localStorage.getItem(CONNECTED_EMAIL_STORAGE_KEY) ?? "",
+  );
   const [appState, setAppState] = useState<AppState>("idle");
   const [activeTab, setActiveTab] = useState<AppTab>("settings");
 
   // Controleer bij opstarten of de gebruiker al is ingelogd
   useEffect(() => {
     oauthClient.getAccessToken({ scope: OAUTH_SCOPE })
-      .then((token) => {
+      .then(async (token) => {
         if (token) {
           setIsAuthenticated(true);
           setActiveTab("generate");
+          try {
+            const info = await apiFetch("VALIDATE") as ValidateResponse;
+            const email = info.email ?? "";
+            localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
+            setConnectedEmail(email);
+          } catch { /* e-mail ophalen mislukt, niet kritiek */ }
         }
       })
       .catch(() => {/* niet ingelogd */});
@@ -3636,7 +3671,11 @@ export const App = () => {
     () => localStorage.getItem(TEACHER_NAME_STORAGE_KEY) ?? "",
   );
   const [reportTitle, setReportTitle] = useState<string>(
-    () => localStorage.getItem(REPORT_TITLE_STORAGE_KEY) ?? DEFAULT_REPORT_TITLE,
+    () => localStorage.getItem(REPORT_TITLE_STORAGE_KEY) ?? intl.formatMessage({
+      id: "report.defaultTitle",
+      defaultMessage: "Look what I can already do!",
+      description: "Default report title shown as placeholder and fallback",
+    }),
   );
   const [reportFooter, setReportFooter] = useState<string>(
     () => localStorage.getItem(REPORT_FOOTER_STORAGE_KEY) ?? "",
@@ -3855,6 +3894,12 @@ export const App = () => {
     if (!token) {
       throw new Error("No access token received after authorization.");
     }
+    try {
+      const info = await apiFetch("VALIDATE") as ValidateResponse;
+      const email = info.email ?? "";
+      localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
+      setConnectedEmail(email);
+    } catch { /* e-mail ophalen mislukt, niet kritiek */ }
     setIsAuthenticated(true);
     setAppState("idle");
     setActiveTab("generate");
@@ -3878,6 +3923,8 @@ export const App = () => {
       NIVEAU_HAND_REF_MAP_STORAGE_KEY,
     ].forEach((key) => localStorage.removeItem(key));
     niveauHandRefToColor.clear();
+    localStorage.removeItem(CONNECTED_EMAIL_STORAGE_KEY);
+    setConnectedEmail("");
     await oauthClient.deauthorize();
     setIsAuthenticated(false);
     setAppState("idle");
@@ -4427,6 +4474,19 @@ export const App = () => {
   const handleDone = () => setAppState("done");
   const handleBack = () => setAppState("idle");
 
+  if (!isAuthenticated) {
+    return (
+      <Box padding="2u">
+        <SupportScreen
+          isAuthenticated={isAuthenticated}
+          connectedEmail={connectedEmail}
+          onLogin={handleLogin}
+          onDisconnect={handleDisconnect}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Tabs activeId={activeTab} onSelect={(value) => setActiveTab(value as AppTab)}>
       <Box padding="2u" display="flex" flexDirection="column">
@@ -4437,7 +4497,11 @@ export const App = () => {
               active={activeTab === "settings"}
               onClick={() => setActiveTab("settings")}
             >
-              Layout
+              {intl.formatMessage({
+                id: "tabs.layout",
+                defaultMessage: "Layout",
+                description: "Label for the Layout tab",
+              })}
             </Tab>
             <Tab
               id="generate"
@@ -4497,7 +4561,11 @@ export const App = () => {
                 templateId={generatePayload.templateId}
                 reportDateRange={reportDateRange}
                 teacherName={teacherName}
-                reportTitle={reportTitle.trim() || DEFAULT_REPORT_TITLE}
+                reportTitle={reportTitle.trim() || intl.formatMessage({
+                  id: "report.defaultTitle",
+                  defaultMessage: "Look what I can already do!",
+                  description: "Default report title shown as placeholder and fallback",
+                })}
                 reportFooter={reportFooter}
                 selectedTapes={selectedTapes}
                 reportContentOptions={reportContentOptions}
@@ -4577,6 +4645,7 @@ export const App = () => {
               </Rows>
               <SupportScreen
                 isAuthenticated={isAuthenticated}
+                connectedEmail={connectedEmail}
                 onLogin={handleLogin}
                 onDisconnect={handleDisconnect}
               />
