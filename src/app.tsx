@@ -77,14 +77,6 @@ type NiveauOption = {
   color: string;
 };
 
-type Template = {
-  id: "rapport" | "portfolio" | "groei";
-  emoji: string;
-  label: string;
-  labelId: string;
-  description: string;
-  descriptionId: string;
-};
 
 type AppState =
   | "idle"
@@ -215,34 +207,6 @@ function saveNiveauHandRefMap() {
 const NIVEAU_HANDS_BASE_URL =
   "https://login.mijnkleutergroep.nl/archon-content/plugins/mkg2/assets/rapporten/handjes";
 
-const TEMPLATES: Template[] = [
-  {
-    id: "rapport",
-    emoji: "📄",
-    label: "Custom report",
-    labelId: "template.rapport.label",
-    description: "Photo + name + observations per domain",
-    descriptionId: "template.rapport.description",
-  },
-  {
-    id: "portfolio",
-    emoji: "🖼️",
-    label: "Portfolio",
-    labelId: "template.portfolio.label",
-    description: "Large photo with latest note",
-    descriptionId: "template.portfolio.description",
-  },
-  {
-    id: "groei",
-    emoji: "📈",
-    label: "Growth overview",
-    labelId: "template.groei.label",
-    description: "Table with scores per domain",
-    descriptionId: "template.groei.description",
-  },
-];
-
-const AVAILABLE_TEMPLATES: Template["id"][] = ["rapport"];
 
 function isA4Dimensions(width: number, height: number): boolean {
   const ratio = width / height;
@@ -2325,7 +2289,7 @@ async function addPageWithRetry(page: Parameters<typeof addPage>[0], maxRetries 
 // Genereer pagina's voor een leerling, met throttling om rate limiting te voorkomen
 async function generatePageForStudent(
   student: Student,
-  templateId: Template["id"],
+  templateId: "rapport",
   dateRange: ReportDateRange,
   teacherName: string,
   reportTitle: string,
@@ -2728,7 +2692,7 @@ function SettingsScreen({
 // 2. Genereren
 type GenerateScreenProps = {
   isAuthenticated: boolean;
-  onGenerate: (students: Student[], template: Template["id"], extraTexts: PageExtraTexts) => void;
+  onGenerate: (students: Student[], template: "rapport", extraTexts: PageExtraTexts) => void;
   generationError?: string;
 
   reportContentOptions: ReportContentOptions;
@@ -2755,7 +2719,6 @@ function GenerateScreen({
   const [selectionMode, setSelectionMode] = useState<"group" | "student">("group");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [selectedTemplate, setSelectedTemplate] = useState<Template["id"]>("rapport");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [coloredLevelHandsTopText, setColoredLevelHandsTopText] = useState("");
@@ -2862,9 +2825,6 @@ function GenerateScreen({
         ? [selectedStudent]
         : []
       : groupStudents;
-  const visibleTemplates = TEMPLATES.filter((template) =>
-    AVAILABLE_TEMPLATES.includes(template.id),
-  );
 
   if (loading) return <LoadingIndicator />;
   if (!isAuthenticated) {
@@ -3063,33 +3023,8 @@ function GenerateScreen({
         </div>
       </Rows>
 
-      {/* Step 3 — Template */}
+      {/* Step 3 — Report content */}
       <Rows spacing="1u">
-        <Text variant="bold">
-          <FormattedMessage
-            id="generate.step3"
-            defaultMessage="③ Choose a template"
-            description="Heading for step 3 of the generate flow"
-          />
-        </Text>
-        <Rows spacing="1u">
-          {visibleTemplates.map((t) => (
-            <Box
-              key={t.id}
-              style={{
-                border: selectedTemplate === t.id ? '2px solid var(--ui-kit-color-brand)' : '1px solid #ddd',
-                borderRadius: 8,
-                padding: 12,
-                cursor: 'pointer',
-                background: selectedTemplate === t.id ? 'var(--ui-kit-color-surface-subtle)' : 'white',
-              }}
-              onClick={() => setSelectedTemplate(t.id)}
-            >
-              <Text variant="bold">{t.emoji} {intl.formatMessage({ id: t.labelId, defaultMessage: t.label })}</Text>
-              <Text tone="tertiary">{intl.formatMessage({ id: t.descriptionId, defaultMessage: t.description })}</Text>
-            </Box>
-          ))}
-        </Rows>
         <Box paddingTop="2u">
         <Rows spacing="1u">
           <Text variant="bold">
@@ -3282,7 +3217,7 @@ function GenerateScreen({
         ) : (
           <Button
             variant="primary"
-            onClick={() => onGenerate(studentsToGenerate, selectedTemplate, {
+            onClick={() => onGenerate(studentsToGenerate, "rapport", {
               coloredLevelHandsTopText,
               coloredLevelHandsBottomText,
               studentGraphsTopText,
@@ -3428,7 +3363,7 @@ function GeneratingScreen({
   onCancel,
 }: {
   students: Student[];
-  templateId: Template["id"];
+  templateId: "rapport";
   reportDateRange: ReportDateRange;
   teacherName: string;
   reportTitle: string;
@@ -3660,7 +3595,7 @@ export const App = () => {
   }, []);
   const [generatePayload, setGeneratePayload] = useState<{
     students: Student[];
-    templateId: Template["id"];
+    templateId: "rapport";
     extraTexts: PageExtraTexts;
   } | null>(null);
   const [reportDateRange, setReportDateRange] = useState<ReportDateRange>(() =>
@@ -4364,7 +4299,6 @@ export const App = () => {
         !isAuthenticated ||
         appState === "generating" ||
         imageSelectionCount === 0 ||
-        isPhotoModalOpen ||
         isNiveauModalOpen ||
         replacingPhoto ||
         replacingNiveauHand ||
@@ -4427,7 +4361,6 @@ export const App = () => {
     appState,
     imageSelectionCount,
     imageSelection,
-    isPhotoModalOpen,
     isNiveauModalOpen,
     replacingPhoto,
     replacingNiveauHand,
@@ -4435,7 +4368,7 @@ export const App = () => {
 
   const handleGenerate = async (
     students: Student[],
-    templateId: Template["id"],
+    templateId: "rapport",
     extraTexts: PageExtraTexts,
   ) => {
     if (!canAddPage) {

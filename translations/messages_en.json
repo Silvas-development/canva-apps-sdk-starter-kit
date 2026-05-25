@@ -1,470 +1,470 @@
 {
   "customize.changeHandColor.button": {
     "defaultMessage": "Change color of selected hand",
-    "description": "Button to open the level hand color picker"
+    "description": "Button in the Customize tab. The user must first click a 'level hand' image in their Canva document, then press this button to open a color picker. A 'level hand' is a colored hand-shaped icon that represents a student's achievement level."
   },
   "customize.replacePhoto.button": {
     "defaultMessage": "Choose replacement photo",
-    "description": "Button to open the student photo picker"
+    "description": "Button in the Customize tab. Opens a photo picker so the user can swap out a student photo in their Canva document. The user must first click a photo in the document before pressing this button."
   },
   "customize.replacePhoto.description": {
     "defaultMessage": "First click on a student photo or level hand in your Canva document, then choose a new photo or color.",
-    "description": "Instructions for replacing a student photo or level hand"
+    "description": "Instruction text in the Customize tab explaining the two-step workflow: (1) click an element in the Canva document, (2) use the buttons below to replace it. 'Level hand' is a colored hand-shaped achievement icon. 'Canva' is a proper name — do not translate."
   },
   "customize.replacePhoto.title": {
     "defaultMessage": "Replace selected student photo",
-    "description": "Heading for the photo replacement section in the Customize tab"
+    "description": "Section heading in the Customize tab, above the buttons for replacing a student photo or changing a level hand color. Keep it short — it is a heading, not a sentence."
   },
   "done.button": {
     "defaultMessage": "Generate more reports",
-    "description": "Button to go back and generate more reports"
+    "description": "Button shown on the success screen after reports have been generated. Pressing it returns the user to the generate screen so they can start a new batch."
   },
   "done.description": {
     "defaultMessage": "{count} pages have been created in your Canva document. You can now make changes and then print via Share → Download → PDF.",
-    "description": "Success message shown after generating reports, explaining next steps"
+    "description": "Success message shown after all report pages have been added to the Canva document. {count} is replaced by a number (e.g. '12'). 'Share → Download → PDF' refers to menu items in Canva — keep these untranslated or adapt only if Canva's own UI uses different terms in the target language. 'Canva' is a proper name — do not translate."
   },
   "done.title": {
     "defaultMessage": "✅ Done!",
-    "description": "Title shown when all reports have been successfully generated"
+    "description": "Title of the success screen shown when all report pages have been generated successfully. The ✅ emoji is intentional — keep it. Keep the tone celebratory and brief."
   },
   "error.dateOrder": {
     "defaultMessage": "The from date cannot be later than the to date.",
-    "description": "Error shown when the start date is set after the end date"
+    "description": "Validation error shown below the date fields when the user sets a start date that is later than the end date. The report date range must always go from earlier to later."
   },
   "error.noDate": {
     "defaultMessage": "First choose a from and to date for the report data.",
-    "description": "Error shown when no date range has been selected before generating"
+    "description": "Validation error shown when the user tries to generate reports without having filled in both the start date and end date. These dates determine which observation data is included in the report."
   },
   "error.notA4": {
     "defaultMessage": "This Canva document is not A4. New pages always take the size of the current document.",
-    "description": "Error shown when the current Canva document is not A4 format"
+    "description": "Warning shown when the active Canva document is not A4 format. The app generates A4 portrait report pages, so using a non-A4 document will produce incorrectly sized output. 'Canva' is a proper name — do not translate. 'A4' is a paper size standard — do not translate."
   },
   "generate.button.multiple": {
     "defaultMessage": "Create {count} reports →",
-    "description": "Button to generate reports for all students in the selected class"
+    "description": "Primary action button on the generate screen when an entire class is selected. {count} is replaced by the number of students in the class (e.g. 'Create 24 reports →'). The → arrow indicates moving forward to the next step. Keep it short and action-oriented."
   },
   "generate.button.single": {
     "defaultMessage": "Create 1 report →",
-    "description": "Button to generate a report for the selected individual student"
+    "description": "Primary action button on the generate screen when a single student is selected. The → arrow indicates moving forward. Keep it short and action-oriented."
   },
   "generate.chooseClass": {
     "defaultMessage": "Choose a class",
-    "description": "Label above the class selection radio group"
+    "description": "Label above the list of classes (groups) the teacher can select. After choosing a class, all students in that class will get a report. Shown when the mode is set to 'An entire class'."
   },
   "generate.chooseStudent": {
     "defaultMessage": "Choose a student",
-    "description": "Label above the student selection radio group"
+    "description": "Label above the list of individual students the teacher can select. Shown when the mode is set to 'An individual student'."
   },
   "generate.content.bottomText": {
     "defaultMessage": "Text below the page (optional)",
-    "description": "Placeholder for optional text shown below the level hands page"
+    "description": "Placeholder text inside an optional text input field. The text the teacher enters here will appear below the level hands page in the generated report. 'Level hands' are colored hand-shaped achievement icons."
   },
   "generate.content.extraPhotos": {
     "defaultMessage": "Extra page with 6 photos",
-    "description": "Checkbox label for the extra photos page option"
+    "description": "Checkbox label in the report content section. When checked, an extra page containing 6 student photos is added to the report."
   },
   "generate.content.extraTextBoxes": {
     "defaultMessage": "Extra page with 6 text boxes",
-    "description": "Checkbox label for the extra text boxes page option"
+    "description": "Checkbox label in the report content section. When checked, an extra page with 6 blank text boxes is added to the report for the teacher to fill in manually in Canva."
   },
   "generate.content.goalDescriptions": {
     "defaultMessage": "Goal level with description",
-    "description": "Checkbox label for the goal level with description page option"
+    "description": "Checkbox label in the report content section. When checked, a page is added showing each development goal with its achieved level and a written description of that level."
   },
   "generate.content.goalLevels": {
     "defaultMessage": "Development goals with levels",
-    "description": "Checkbox label for the development goals with levels page option"
+    "description": "Checkbox label in the report content section. When checked, a page is added showing the student's development goals and their achieved level for each goal."
   },
   "generate.content.label": {
     "defaultMessage": "Report content per student",
-    "description": "Heading above the checkboxes for selecting which pages to include in the report"
+    "description": "Section heading above the checkboxes where the teacher selects which pages to include in each student's report. Keep it short — it is a heading."
   },
   "generate.content.levelHands": {
     "defaultMessage": "Colored level hands",
-    "description": "Checkbox label for the colored level hands page option"
+    "description": "Checkbox label in the report content section. When checked, a page with colored hand-shaped icons ('level hands') is added. Each hand's color represents the student's achievement level for a specific development domain."
   },
   "generate.content.photoPage": {
     "defaultMessage": "Cover page (photo page)",
-    "description": "Checkbox label for the cover/photo page option (always enabled)"
+    "description": "Checkbox label in the report content section. This is the main cover page featuring the student's photo, name, and report title. This option is always enabled and cannot be unchecked — it is the required first page of every report."
   },
   "generate.content.selfDrawing": {
     "defaultMessage": "Self-drawing",
-    "description": "Checkbox label for the self-drawing page option"
+    "description": "Checkbox label in the report content section. When checked, a page is added containing the student's self-portrait drawing from MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "generate.content.studentGraphs": {
     "defaultMessage": "Student graphs",
-    "description": "Checkbox label for the student growth graphs page option"
+    "description": "Checkbox label in the report content section. When checked, a page with growth graphs per development domain is added, showing the student's progress over time."
   },
   "generate.content.topText": {
     "defaultMessage": "Text above the page (optional)",
-    "description": "Placeholder for optional text shown above the level hands page"
+    "description": "Placeholder text inside an optional text input field. The text entered here will appear above the level hands page in the generated report. 'Level hands' are colored hand-shaped achievement icons."
   },
   "generate.dateInfo": {
     "defaultMessage": "These dates are used to calculate the achieved levels.",
-    "description": "Explanation of why the date range is needed"
+    "description": "Informational note below the date range inputs. Explains to the teacher that the from/to dates determine which observations from MijnKleutergroep are included when calculating each student's achievement levels."
   },
   "generate.fromDate": {
     "defaultMessage": "From date",
-    "description": "Label for the start date input"
+    "description": "Label for the start date input field in the date range section. Together with the 'to date', this defines the period of observations used to calculate student achievement levels."
   },
   "generate.groupStudentsError": {
     "defaultMessage": "Could not retrieve students for this class.",
-    "description": "Error shown when loading students for a selected class fails"
+    "description": "Error message shown when the app fails to load the list of students for the selected class. This is typically caused by a network or server issue."
   },
   "generate.loadError": {
     "defaultMessage": "Could not retrieve data. Check your connection.",
-    "description": "Error shown when the app fails to load groups and students"
+    "description": "Error message shown on startup when the app fails to load the list of classes and students from MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate. Followed by the raw server response for debugging."
   },
   "generate.mode.group": {
     "defaultMessage": "An entire class",
-    "description": "Radio option to generate reports for a whole class"
+    "description": "Radio button label. Selecting this option will generate a report for every student in a chosen class in one go."
   },
   "generate.mode.group.description": {
     "defaultMessage": "Generate for all students in 1 class",
-    "description": "Description for the 'entire class' radio option"
+    "description": "Short explanatory subtitle below the 'An entire class' radio button. Clarifies that all students in the selected class will receive a report."
   },
   "generate.mode.student": {
     "defaultMessage": "An individual student",
-    "description": "Radio option to generate a report for one student"
+    "description": "Radio button label. Selecting this option lets the teacher generate a report for just one specific student."
   },
   "generate.mode.student.description": {
     "defaultMessage": "Generate 1 individual report",
-    "description": "Description for the 'individual student' radio option"
+    "description": "Short explanatory subtitle below the 'An individual student' radio button. Clarifies that only one report will be created."
   },
   "generate.noAccount": {
     "defaultMessage": "First connect your account in the Customize tab to generate pages.",
-    "description": "Message shown when the user has not connected their account yet"
+    "description": "Message shown on the generate screen when no MijnKleutergroep account is connected yet. Directs the teacher to the Customize tab to link their account. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "generate.noDate": {
     "defaultMessage": "First choose a from and to date.",
-    "description": "Error shown when the user has not selected a date range yet"
+    "description": "Inline validation message shown near the generate button when the teacher has not yet filled in both the start and end date."
   },
   "generate.noPages": {
     "defaultMessage": "This Canva document doesn't support new pages. Open the report in a document type that can add pages.",
-    "description": "Error shown when the current Canva document type does not support adding pages"
+    "description": "Error shown when the teacher's current Canva document type does not allow adding new pages (e.g. a single-page design). The teacher needs to open or create a multi-page document instead. 'Canva' is a proper name — do not translate."
   },
   "generate.noStudent": {
     "defaultMessage": "No student selected.",
-    "description": "Shown when no individual student has been chosen"
+    "description": "Message shown near the generate button when the mode is set to 'An individual student' but no student has been selected from the list yet."
   },
   "generate.noStudents": {
     "defaultMessage": "No students found in this class.",
-    "description": "Shown when the selected class has no students"
+    "description": "Message shown when the selected class exists but contains no students. This may occur if the class is empty in MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "generate.step1": {
     "defaultMessage": "① Choose what you want to generate",
-    "description": "Heading for step 1 of the generate flow"
+    "description": "Step heading for the first step in the generate flow. The ① is a circled number indicating step 1. The teacher chooses whether to generate for a whole class or an individual student."
   },
   "generate.step2": {
     "defaultMessage": "② From and to date",
-    "description": "Heading for step 2 of the generate flow"
+    "description": "Step heading for the second step in the generate flow. The ② is a circled number indicating step 2. The teacher sets the date range for the observation data to include."
   },
   "generate.step3": {
     "defaultMessage": "③ Choose a template",
-    "description": "Heading for step 3 of the generate flow"
+    "description": "Step heading for the third step in the generate flow. The ③ is a circled number indicating step 3. Currently only one template ('Custom report') is available."
   },
   "generate.step4": {
     "defaultMessage": "④ Generate pages",
-    "description": "Heading for step 4 of the generate flow"
+    "description": "Step heading for the fourth and final step in the generate flow. The ④ is a circled number indicating step 4. This section contains the generate button and the student/class selector."
   },
   "generate.studentCount": {
     "defaultMessage": "{count} students",
-    "description": "Shows the number of students in a class"
+    "description": "Shows the number of students in a selected class, displayed next to the class name. {count} is replaced by a number (e.g. '24 students'). Use the plural form appropriate for the target language."
   },
   "generate.title": {
     "defaultMessage": "Generate",
-    "description": "Title of the Generate tab"
+    "description": "Title displayed at the top of the Generate tab screen. Also used as the tab label. Keep it short."
   },
   "generate.toDate": {
     "defaultMessage": "To date",
-    "description": "Label for the end date input"
+    "description": "Label for the end date input field in the date range section. Together with the 'from date', defines the period of observations included in the report."
   },
   "generating.cancel": {
     "defaultMessage": "Cancel",
-    "description": "Button to cancel the page generation process"
+    "description": "Button shown during the page generation process. Pressing it stops generating the remaining pages. Already-generated pages are kept in the Canva document."
   },
   "generating.error": {
     "defaultMessage": "Error: {error}",
-    "description": "Generic error message shown during page generation"
+    "description": "Error message shown during generation when a page fails. {error} is replaced by the technical error message returned by the server or app. Keep 'Error:' as a label prefix."
   },
   "generating.failed": {
     "defaultMessage": "Failed for: {names}",
-    "description": "Error listing the students whose pages could not be generated"
+    "description": "Error message shown after generation completes with some failures. {names} is replaced by a comma-separated list of student names whose reports could not be created. Keep 'Failed for:' as a label prefix."
   },
   "generating.title": {
     "defaultMessage": "Creating pages…",
-    "description": "Title shown while reports are being generated"
+    "description": "Title shown on the loading screen while the app is generating and inserting report pages into the Canva document. The … indicates an ongoing process — keep it."
   },
   "modal.background.description": {
     "defaultMessage": "Choose a background to use for newly generated A4 pages.",
-    "description": "Description shown at the top of the background picker modal"
+    "description": "Instruction text at the top of the background picker popup. The chosen background image will be placed behind all content on each generated report page. 'A4' is a paper size — do not translate."
   },
   "modal.background.loadError": {
     "defaultMessage": "Could not load backgrounds.",
-    "description": "Error shown when the background images fail to load"
+    "description": "Error shown inside the background picker popup when the list of available background images fails to load from the server."
   },
   "modal.background.noAccount": {
     "defaultMessage": "Connect your account first to load backgrounds.",
-    "description": "Error shown when trying to open the background picker without a connected account"
+    "description": "Message shown inside the background picker popup when no MijnKleutergroep account is connected. The backgrounds are fetched from the teacher's account. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.background.title": {
     "defaultMessage": "Set background",
-    "description": "Title of the background picker modal"
+    "description": "Title of the background picker popup. The teacher uses this to select a background image for their generated report pages."
   },
   "modal.close": {
     "defaultMessage": "Close",
-    "description": "Button to close a modal dialog"
+    "description": "Button at the bottom of every popup/modal dialog. Pressing it dismisses the popup without saving any changes. Keep it very short."
   },
   "modal.niveau.changeError": {
     "defaultMessage": "Could not change the color of this level hand.",
-    "description": "Error shown when replacing a level hand image fails"
+    "description": "Error shown inside the level hand color picker popup when the app fails to replace the selected level hand image in the Canva document. 'Level hand' is a colored hand-shaped achievement icon."
   },
   "modal.niveau.colorUnknown": {
     "defaultMessage": "Could not determine the current color — please choose a color manually.",
-    "description": "Warning shown when the current level hand color cannot be detected automatically"
+    "description": "Warning shown inside the level hand color picker popup when the app cannot automatically detect which color the currently selected hand image has. The teacher should pick the correct color manually from the list."
   },
   "modal.niveau.description": {
     "defaultMessage": "Click on a color to replace the selected level hand in your document.",
-    "description": "Instructions shown at the top of the level hand color picker modal"
+    "description": "Instruction text at the top of the level hand color picker popup. The teacher selects a color and the corresponding colored hand image replaces the selected one in their Canva document. 'Canva' is a proper name — do not translate."
   },
   "modal.niveau.loadError": {
     "defaultMessage": "Could not load levels.",
-    "description": "Error shown when the level options fail to load"
+    "description": "Error shown inside the level hand color picker popup when the list of available level/color options fails to load from the server."
   },
   "modal.niveau.noAccount": {
     "defaultMessage": "Connect your account first to load levels.",
-    "description": "Error shown when opening the level hand picker without a connected account"
+    "description": "Message shown inside the level hand color picker popup when no MijnKleutergroep account is connected. The level options are fetched from the teacher's account. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.niveau.noSelection": {
     "defaultMessage": "First select a colored level hand in your Canva document.",
-    "description": "Error shown when the user opens the level picker without selecting an image first"
+    "description": "Error shown inside the level hand color picker popup when the teacher opened it without first clicking a level hand image in their Canva document. They must select a level hand image first. 'Canva' is a proper name — do not translate."
   },
   "modal.niveau.reselect": {
     "defaultMessage": "Please select a level hand in your document again.",
-    "description": "Error asking the user to re-select a level hand in the Canva document"
+    "description": "Error shown inside the level hand color picker popup when the previously selected level hand image is no longer available or its reference was lost. The teacher needs to click a level hand image in the Canva document again."
   },
   "modal.niveau.title": {
     "defaultMessage": "Change level hand color",
-    "description": "Title of the level hand color picker modal"
+    "description": "Title of the level hand color picker popup. A 'level hand' is a colored hand-shaped icon that represents a student's achievement level for a development domain."
   },
   "modal.photo.ariaLabel": {
     "defaultMessage": "Student photo {id}",
-    "description": "Accessible label for a student photo thumbnail"
+    "description": "Accessible screen reader label for each student photo thumbnail shown in the photo picker popup. {id} is replaced by a student identifier (name or number). This text is not visible on screen but is read aloud by screen readers."
   },
   "modal.photo.chooseStudent": {
     "defaultMessage": "Choose student",
-    "description": "Heading above the student selection list in the photo modal"
+    "description": "Sub-heading inside the student photo picker popup, above the list of students the teacher can select to filter photos by student."
   },
   "modal.photo.loadError": {
     "defaultMessage": "Could not load student photos.",
-    "description": "Error shown when the student photos fail to load"
+    "description": "Error shown inside the photo picker popup when the student photos fail to load from MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.photo.noAccount": {
     "defaultMessage": "Connect your account first to load student photos.",
-    "description": "Error shown when opening the photo picker without a connected account"
+    "description": "Message shown inside the photo picker popup when no MijnKleutergroep account is connected. Photos are fetched from the teacher's account. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.photo.noPhotos": {
     "defaultMessage": "No student photos found for this student.",
-    "description": "Shown when a student has no photos available"
+    "description": "Message shown inside the photo picker popup when the selected student has no photos available in MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.photo.noSelection": {
     "defaultMessage": "First select a photo in your Canva document.",
-    "description": "Error shown when the user opens the photo picker without selecting an image first"
+    "description": "Error shown inside the photo picker popup when the teacher opened it without first clicking a photo in their Canva document. They must select a photo frame (polaroid) first. 'Canva' is a proper name — do not translate."
   },
   "modal.photo.noStudent": {
     "defaultMessage": "Choose a new photo for the selected image.",
-    "description": "Instructions shown when no specific student is identified"
+    "description": "Instruction shown inside the photo picker popup when the selected image in the Canva document could not be linked to a specific student. The teacher can still choose any photo to replace it."
   },
   "modal.photo.notLinked": {
     "defaultMessage": "This selection is not a linked student photo. Select a photo inside a polaroid.",
-    "description": "Error shown when the selected image is not recognized as a student photo"
+    "description": "Error shown inside the photo picker popup when the selected image in Canva is not a student photo that was placed by this app. The teacher must select a photo inside a 'polaroid' frame (the photo layout used in the report). 'Canva' and 'polaroid' are context-specific terms."
   },
   "modal.photo.replaceError": {
     "defaultMessage": "Could not replace the selected photo.",
-    "description": "Error shown when replacing a student photo fails"
+    "description": "Error shown inside the photo picker popup when the app fails to swap out the photo in the Canva document after the teacher selected a new one."
   },
   "modal.photo.reselect": {
     "defaultMessage": "Please select a photo in your document again.",
-    "description": "Error asking the user to re-select a photo in the Canva document"
+    "description": "Error shown inside the photo picker popup when the previously selected photo's reference was lost. The teacher must click a photo in the Canva document again to re-establish the selection."
   },
   "modal.photo.title": {
     "defaultMessage": "Replace student photo",
-    "description": "Title of the student photo replacement modal"
+    "description": "Title of the student photo replacement popup. The teacher uses this to swap a student's photo in their Canva report document."
   },
   "modal.photo.withStudent": {
     "defaultMessage": "Choose a photo for student {id}.",
-    "description": "Instructions shown when a specific student is identified"
+    "description": "Instruction shown inside the photo picker popup when the selected photo was linked to a specific student. {id} is replaced by the student's name or identifier. The teacher chooses from that student's available photos."
   },
   "modal.tape.description": {
     "defaultMessage": "Choose a maximum of 10 tapes.",
-    "description": "Instructions shown at the top of the tape picker modal"
+    "description": "Instruction text at the top of the tape picker popup. 'Tapes' are decorative washi-tape style image strips that are placed randomly on the generated report pages for a scrapbook-style look. Maximum 10 can be selected."
   },
   "modal.tape.loadError": {
     "defaultMessage": "Could not load tapes.",
-    "description": "Error shown when the tape images fail to load"
+    "description": "Error shown inside the tape picker popup when the list of available tape images fails to load from the server."
   },
   "modal.tape.maxWarning": {
     "defaultMessage": "You can select a maximum of 10 tapes.",
-    "description": "Warning shown when the user tries to select more than 10 tapes"
+    "description": "Warning shown inside the tape picker popup when the teacher tries to select an 11th tape. The selection is capped at 10."
   },
   "modal.tape.noAccount": {
     "defaultMessage": "Connect your account first to load tapes.",
-    "description": "Error shown when trying to open the tape picker without a connected account"
+    "description": "Message shown inside the tape picker popup when no MijnKleutergroep account is connected. The tape images are fetched from the teacher's account. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "modal.tape.title": {
     "defaultMessage": "Choose tapes",
-    "description": "Title of the tape picker modal"
+    "description": "Title of the tape picker popup. 'Tapes' are decorative washi-tape strips placed on report pages for a scrapbook look."
   },
   "ostuYh": {
     "defaultMessage": "This feature is not supported in the current page",
-    "description": "Tooltip label for when a feature is not supported in the current design"
+    "description": "Tooltip shown when hovering over a button or feature that is unavailable because the current Canva document type does not support it. 'Canva' is a proper name — do not translate."
   },
   "report.defaultTitle": {
     "defaultMessage": "Look what I can already do!",
-    "description": "Default report title shown as placeholder and fallback"
+    "description": "Default title printed at the top of each student's report cover page when the teacher has not entered a custom title. This is a motivational phrase spoken from the child's perspective. It should sound enthusiastic and child-friendly. Also used as placeholder text in the report title input field."
   },
   "settings.background.button": {
     "defaultMessage": "Set background",
-    "description": "Button to open the background picker"
+    "description": "Button in the Layout tab that opens the background picker popup. The chosen background image is applied to all newly generated report pages."
   },
   "settings.background.label": {
     "defaultMessage": "Set background",
-    "description": "Label for the background picker section in Settings"
+    "description": "Section heading in the Layout tab above the background selection area. Keep it short."
   },
   "settings.background.none": {
     "defaultMessage": "No background selected yet.",
-    "description": "Shown when no background has been chosen"
+    "description": "Status text shown in the Layout tab below the background button when the teacher has not chosen a background image yet. Generated pages will have a plain white background."
   },
   "settings.background.selected": {
     "defaultMessage": "Selected: {name}",
-    "description": "Shows the name of the currently selected background"
+    "description": "Status text shown in the Layout tab when a background has been selected. {name} is replaced by the background image's name (e.g. 'Selected: Autumn leaves'). Keep 'Selected:' as a label prefix."
   },
   "settings.bodyFont.label": {
     "defaultMessage": "Font for body text",
-    "description": "Label for the body text font picker in Settings"
+    "description": "Label in the Layout tab above the font picker for body/paragraph text used in the generated report pages. Body text includes student observations, descriptions, and other longer text."
   },
   "settings.cardBgColor.description": {
     "defaultMessage": "Color of the cards and text blocks on generated pages. (default: white)",
-    "description": "Description for the card background color setting"
+    "description": "Explanatory text below the card background color picker in the Layout tab. Cards and text blocks are the white rectangular areas behind text content on report pages. The opacity can also be adjusted."
   },
   "settings.cardBgColor.label": {
     "defaultMessage": "Card background color",
-    "description": "Label for the card background color picker in Settings"
+    "description": "Label in the Layout tab above the color picker for the background color of content cards and text blocks on generated report pages."
   },
   "settings.cardBgColor.opacity": {
     "defaultMessage": "Opacity: {value}%",
-    "description": "Shows the current opacity percentage for the card background color"
+    "description": "Label showing the current opacity of the card background color. {value} is replaced by a number 0–100 (e.g. 'Opacity: 80%'). Keep 'Opacity:' as a label prefix."
   },
   "settings.font.clear": {
     "defaultMessage": "Clear",
-    "description": "Button to remove the currently selected font and revert to default"
+    "description": "Small button next to a font selector in the Layout tab. Pressing it removes the custom font selection and reverts to the default font. Keep it very short (1 word)."
   },
   "settings.font.default": {
     "defaultMessage": "Default (click to choose)",
-    "description": "Button label when no custom font has been selected yet"
+    "description": "Placeholder shown in the font picker button in the Layout tab when no custom font has been selected. Clicking it opens a font picker. The text in parentheses is a call-to-action hint."
   },
   "settings.headingFont.label": {
     "defaultMessage": "Font for headings",
-    "description": "Label for the heading font picker in Settings"
+    "description": "Label in the Layout tab above the font picker for heading/title text on generated report pages. Headings include the report title and section titles."
   },
   "settings.reportFooter.label": {
     "defaultMessage": "Text below report",
-    "description": "Label for the footer text field that appears below the report"
+    "description": "Label in the Layout tab above the text input for the report footer. The footer text appears in a white box at the bottom of the first (cover) page of each generated report."
   },
   "settings.reportFooter.placeholder": {
     "defaultMessage": "Text that appears at the bottom of the 1st page in a white box (optional)",
-    "description": "Placeholder for the report footer text input"
+    "description": "Placeholder text inside the report footer input field in the Layout tab. Describes where the text will appear. Shown in grey when the field is empty. Keep it descriptive but concise."
   },
   "settings.reportTitle.label": {
     "defaultMessage": "Report title",
-    "description": "Label for the report title input field"
+    "description": "Label in the Layout tab above the text input where the teacher can type a custom title for the report. This title appears prominently on the cover page of every generated report."
   },
   "settings.tapes.button": {
     "defaultMessage": "Choose tapes",
-    "description": "Button to open the tape picker"
+    "description": "Button in the Layout tab that opens the tape picker popup. 'Tapes' are decorative washi-tape strips randomly placed on report pages for a scrapbook look."
   },
   "settings.tapes.label": {
     "defaultMessage": "Choose tapes",
-    "description": "Label for the tape picker section in Settings"
+    "description": "Section heading in the Layout tab above the tape selection area. 'Tapes' are decorative washi-tape image strips. Keep it short."
   },
   "settings.tapes.none": {
     "defaultMessage": "No tapes selected yet.",
-    "description": "Shown when no tapes have been chosen"
+    "description": "Status text shown in the Layout tab when the teacher has not chosen any tape images yet. Generated pages will have no decorative tape elements."
   },
   "settings.tapes.selected": {
     "defaultMessage": "{count} of 10 selected",
-    "description": "Shows how many tapes are currently selected out of the maximum of 10"
+    "description": "Status text showing how many tape images have been selected out of the maximum of 10. {count} is replaced by a number 0–10 (e.g. '3 of 10 selected'). The maximum is always 10."
   },
   "settings.teacherName.label": {
     "defaultMessage": "Teacher name",
-    "description": "Label for the teacher name input field in the Settings screen"
+    "description": "Label in the Layout tab above the input field where the teacher enters their name. The teacher's name is printed on the cover page of each generated report."
   },
   "settings.teacherName.placeholder": {
     "defaultMessage": "E.g. Ms. Jansen",
-    "description": "Placeholder for the teacher name input, showing an example name"
+    "description": "Placeholder text inside the teacher name input field, showing an example. 'Jansen' is a common Dutch surname used as an example — you may replace it with a culturally appropriate example name for the target language."
   },
   "support.connect.button": {
     "defaultMessage": "Connect",
-    "description": "Button to submit the connection code and link the account"
+    "description": "Button on the Information & Support screen that starts the OAuth login flow to link the teacher's MijnKleutergroep account. 'MijnKleutergroep' is a proper name — do not translate. Keep it short (1 word preferred)."
   },
   "support.connect.codeLabel": {
     "defaultMessage": "Your connection code",
-    "description": "Label above the connection code input field"
+    "description": "Label above the input field where the teacher can paste a connection code to link their MijnKleutergroep account. The code is obtained from within the MijnKleutergroep app. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "support.connect.error": {
     "defaultMessage": "Invalid connection code. Check if you copied the correct code from the app.",
-    "description": "Error shown when the user enters an invalid connection code"
+    "description": "Error shown below the connection code input when the entered code is not recognized by the server. 'the app' refers to the MijnKleutergroep app where the code is generated. 'MijnKleutergroep' is a proper name — do not translate."
   },
   "support.connect.label": {
     "defaultMessage": "Connect MijnKleutergroep account",
-    "description": "Heading for the account connection section"
+    "description": "Section heading on the Information & Support screen, above the login button. 'MijnKleutergroep' is a proper name — do not translate. This is an action heading, not a description."
   },
   "support.description": {
     "defaultMessage": "Use this Canva plugin to generate student pages from MijnKleutergroep.",
-    "description": "Short description of what this plugin does, shown in the Support tab"
+    "description": "Short introductory description shown at the top of the Information & Support screen. Explains the purpose of the app in one sentence. 'Canva' and 'MijnKleutergroep' are proper names — do not translate."
   },
   "support.disconnect.button": {
     "defaultMessage": "Disconnect",
-    "description": "Button to unlink the currently connected MijnKleutergroep account"
+    "description": "Button shown when a MijnKleutergroep account is connected. Pressing it removes the account link and clears all saved settings. 'MijnKleutergroep' is a proper name — do not translate. Keep it short (1 word preferred)."
   },
   "support.title": {
     "defaultMessage": "Information & Support",
-    "description": "Title of the Support tab"
+    "description": "Title of the Support/Info tab screen, shown as the main heading. This screen contains the account connection options and a short description of the plugin."
   },
   "tabs.customize": {
     "defaultMessage": "Customize",
-    "description": "Label for the Customize tab"
-  },
-  "template.groei.description": {
-    "defaultMessage": "Table with scores per domain",
-    "description": "Description for the Growth overview template"
-  },
-  "template.groei.label": {
-    "defaultMessage": "Growth overview",
-    "description": "Label for the Growth overview template"
-  },
-  "template.portfolio.description": {
-    "defaultMessage": "Large photo with latest note",
-    "description": "Description for the Portfolio template"
-  },
-  "template.portfolio.label": {
-    "defaultMessage": "Portfolio",
-    "description": "Label for the Portfolio template"
-  },
-  "template.rapport.description": {
-    "defaultMessage": "Photo + name + observations per domain",
-    "description": "Description for the Custom report template"
-  },
-  "template.rapport.label": {
-    "defaultMessage": "Custom report",
-    "description": "Label for the Custom report template"
+    "description": "Label for the third navigation tab. This tab lets the teacher replace individual student photos and change level hand colors in their Canva document after reports have been generated. Keep it short — it is a tab label."
   },
   "tabs.generate": {
     "defaultMessage": "Generate",
-    "description": "Label for the Generate tab"
+    "description": "Label for the second navigation tab. This tab is the main screen where the teacher selects students and generates report pages into their Canva document. Keep it short — it is a tab label."
   },
   "tabs.layout": {
     "defaultMessage": "Layout",
-    "description": "Label for the Layout tab"
+    "description": "Label for the first navigation tab. This tab contains layout settings: report title, teacher name, fonts, background image, tape decorations, and card color. Keep it short — it is a tab label."
+  },
+  "template.groei.description": {
+    "defaultMessage": "Table with scores per domain",
+    "description": "Short subtitle shown below the 'Growth overview' template option. Describes what this report layout contains: a table listing each development domain with the student's score. Currently not available for selection."
+  },
+  "template.groei.label": {
+    "defaultMessage": "Growth overview",
+    "description": "Name of the 'growth overview' report template option. This template shows a table of development domain scores. Currently not available for selection in the app."
+  },
+  "template.portfolio.description": {
+    "defaultMessage": "Large photo with latest note",
+    "description": "Short subtitle shown below the 'Portfolio' template option. Describes what this layout contains: a large student photo combined with the latest observation note. Currently not available for selection."
+  },
+  "template.portfolio.label": {
+    "defaultMessage": "Portfolio",
+    "description": "Name of the 'portfolio' report template option. This template features a large photo with the latest note. Currently not available for selection in the app."
+  },
+  "template.rapport.description": {
+    "defaultMessage": "Photo + name + observations per domain",
+    "description": "Short subtitle shown below the 'Custom report' template option. Describes the layout: a student photo and name on the cover, followed by observation pages organized by development domain. This is the only currently available template."
+  },
+  "template.rapport.label": {
+    "defaultMessage": "Custom report",
+    "description": "Name of the main report template. This is the only currently selectable template. It generates a personalized multi-page report per student with a photo cover page and pages for each development domain."
   }
 }

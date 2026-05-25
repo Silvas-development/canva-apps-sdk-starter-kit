@@ -452,7 +452,7 @@
     "description": "Description for the Custom report template"
   },
   "template.rapport.label": {
-    "defaultMessage": "Maatwerrapport",
+    "defaultMessage": "Maatwerkrapport",
     "description": "Label for the Custom report template"
   },
   "tabs.generate": {
