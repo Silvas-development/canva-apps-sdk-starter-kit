@@ -151,6 +151,14 @@
     "defaultMessage": "No students found in this class.",
     "description": "Message shown when the selected class exists but contains no students. This may occur if the class is empty in MijnKleutergroep. 'MijnKleutergroep' is a proper name — do not translate."
   },
+  "generate.noGroups": {
+    "defaultMessage": "No classes found. Make sure your account is linked and that there are classes available in MijnKleutergroep.",
+    "description": "Alert shown on the generate screen when no classes/groups are found after loading. Directs the teacher to check their account connection. 'MijnKleutergroep' is a proper name — do not translate."
+  },
+  "generate.noAllStudents": {
+    "defaultMessage": "No students found. Make sure your account is linked and that there are students available in MijnKleutergroep.",
+    "description": "Alert shown on the generate screen when no students are found after loading. Directs the teacher to check their account connection. 'MijnKleutergroep' is a proper name — do not translate."
+  },
   "generate.step1": {
     "defaultMessage": "① Choose what you want to generate",
     "description": "Step heading for the first step in the generate flow. The ① is a circled number indicating step 1. The teacher chooses whether to generate for a whole class or an individual student."

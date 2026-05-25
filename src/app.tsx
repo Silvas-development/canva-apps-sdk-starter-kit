@@ -2908,22 +2908,32 @@ function GenerateScreen({
                 description="Label above the class selection radio group"
               />
             </Text>
-            <RadioGroup
-              value={selectedGroup}
-              onChange={setSelectedGroup}
-              options={groups.map((g) => ({
-                value: g.id,
-                label: g.name,
-                description: intl.formatMessage(
-                  {
-                    id: "generate.studentCount",
-                    defaultMessage: "{count} students",
-                    description: "Shows the number of students in a class",
-                  },
-                  { count: g.studentCount },
-                ),
-              }))}
-            />
+            {groups.length === 0 ? (
+              <Alert tone="info">
+                <FormattedMessage
+                  id="generate.noGroups"
+                  defaultMessage="No classes found. Make sure your account is linked and that there are classes available in MijnKleutergroep."
+                  description="Alert shown when no groups/classes are found after loading"
+                />
+              </Alert>
+            ) : (
+              <RadioGroup
+                value={selectedGroup}
+                onChange={setSelectedGroup}
+                options={groups.map((g) => ({
+                  value: g.id,
+                  label: g.name,
+                  description: intl.formatMessage(
+                    {
+                      id: "generate.studentCount",
+                      defaultMessage: "{count} students",
+                      description: "Shows the number of students in a class",
+                    },
+                    { count: g.studentCount },
+                  ),
+                }))}
+              />
+            )}
           </>
         ) : (
           <>
@@ -2934,15 +2944,25 @@ function GenerateScreen({
                 description="Label above the student selection radio group"
               />
             </Text>
-            <RadioGroup
-              value={selectedStudentId}
-              onChange={setSelectedStudentId}
-              options={allStudents.map((student) => ({
-                value: student.id,
-                label: student.name,
-                description: student.group,
-              }))}
-            />
+            {allStudents.length === 0 ? (
+              <Alert tone="info">
+                <FormattedMessage
+                  id="generate.noAllStudents"
+                  defaultMessage="No students found. Make sure your account is linked and that there are students available in MijnKleutergroep."
+                  description="Alert shown when no students are found after loading"
+                />
+              </Alert>
+            ) : (
+              <RadioGroup
+                value={selectedStudentId}
+                onChange={setSelectedStudentId}
+                options={allStudents.map((student) => ({
+                  value: student.id,
+                  label: student.name,
+                  description: student.group,
+                }))}
+              />
+            )}
           </>
         )}
       </Rows>
@@ -3181,7 +3201,7 @@ function GenerateScreen({
             description="Heading for step 4 of the generate flow"
           />
         </Text>
-        {generationError && <Text tone="tertiary">{generationError}</Text>}
+        {generationError && <Alert tone="warn">{generationError}</Alert>}
         {!canAddPage && (
           <Text tone="critical">
             <FormattedMessage

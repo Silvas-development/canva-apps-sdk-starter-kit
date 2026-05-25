@@ -151,6 +151,14 @@
     "defaultMessage": "Geen leerlingen gevonden in deze groep.",
     "description": "Shown when the selected class has no students"
   },
+  "generate.noGroups": {
+    "defaultMessage": "Geen groepen gevonden. Controleer of je account is gekoppeld en of er groepen beschikbaar zijn in MijnKleutergroep.",
+    "description": "Alert shown on the generate screen when no classes/groups are found after loading. Directs the teacher to check their account connection."
+  },
+  "generate.noAllStudents": {
+    "defaultMessage": "Geen leerlingen gevonden. Controleer of je account is gekoppeld en of er leerlingen beschikbaar zijn in MijnKleutergroep.",
+    "description": "Alert shown on the generate screen when no students are found after loading. Directs the teacher to check their account connection."
+  },
   "generate.step1": {
     "defaultMessage": "① Kies wat je wilt genereren",
     "description": "Heading for step 1 of the generate flow"
