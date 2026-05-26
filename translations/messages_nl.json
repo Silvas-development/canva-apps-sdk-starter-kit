@@ -407,6 +407,10 @@
     "defaultMessage": "Bijv. Mevrouw Jansen",
     "description": "Placeholder for the teacher name input, showing an example name"
   },
+  "generate.license.expired": {
+    "defaultMessage": "Je maatwerklicentie is verlopen, verleng je licentie in MijnKleutergroep.",
+    "description": "Warning shown instead of the generate button when the user's custom report licence has expired. 'MijnKleutergroep' is a proper name — do not translate."
+  },
   "support.connect.button": {
     "defaultMessage": "Verbinden",
     "description": "Button to submit the connection code and link the account"
@@ -430,6 +434,14 @@
   "support.disconnect.button": {
     "defaultMessage": "Ontkoppelen",
     "description": "Button to unlink the currently connected MijnKleutergroep account"
+  },
+  "support.license.expired": {
+    "defaultMessage": "Je maatwerklicentie is verlopen op {datum}, verleng je licentie in MijnKleutergroep.",
+    "description": "Warning shown near the disconnect button when the user's custom report licence has expired. {datum} is replaced by the expiry date (dd-mm-yyyy). 'MijnKleutergroep' is a proper name — do not translate."
+  },
+  "support.license.validUntil": {
+    "defaultMessage": "Maatwerkrapportlicentie geldig tot: {datum}",
+    "description": "Text shown near the disconnect button indicating when the user's custom report licence expires. {datum} is replaced by the expiry date (dd-mm-yyyy)."
   },
   "support.title": {
     "defaultMessage": "Informatie & Support",

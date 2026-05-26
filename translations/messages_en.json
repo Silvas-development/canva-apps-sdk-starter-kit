@@ -411,6 +411,10 @@
     "defaultMessage": "E.g. Ms. Jansen",
     "description": "Placeholder text inside the teacher name input field, showing an example. 'Jansen' is a common Dutch surname used as an example — you may replace it with a culturally appropriate example name for the target language."
   },
+  "generate.license.expired": {
+    "defaultMessage": "Your custom report licence has expired, renew your licence in MijnKleutergroep.",
+    "description": "Warning shown instead of the generate button when the user's custom report licence has expired. 'MijnKleutergroep' is a proper name — do not translate."
+  },
   "support.connect.button": {
     "defaultMessage": "Connect",
     "description": "Button on the Information & Support screen that starts the OAuth login flow to link the teacher's MijnKleutergroep account. 'MijnKleutergroep' is a proper name — do not translate. Keep it short (1 word preferred)."
@@ -434,6 +438,14 @@
   "support.disconnect.button": {
     "defaultMessage": "Disconnect",
     "description": "Button shown when a MijnKleutergroep account is connected. Pressing it removes the account link and clears all saved settings. 'MijnKleutergroep' is a proper name — do not translate. Keep it short (1 word preferred)."
+  },
+  "support.license.expired": {
+    "defaultMessage": "Your custom report licence has expired on {datum}, renew your licence in MijnKleutergroep.",
+    "description": "Warning shown near the disconnect button when the user's custom report licence has expired. {datum} is replaced by the expiry date (dd-mm-yyyy). 'MijnKleutergroep' is a proper name — do not translate."
+  },
+  "support.license.validUntil": {
+    "defaultMessage": "Custom report licence valid until: {datum}",
+    "description": "Text shown near the disconnect button indicating when the user's custom report licence expires. {datum} is replaced by the expiry date (dd-mm-yyyy)."
   },
   "support.title": {
     "defaultMessage": "Information & Support",

@@ -116,7 +116,7 @@ type NiveauHandjeRow = {
 
 type NiveauHandjesResponse = Record<string, NiveauHandjeRow[]>;
 
-type ValidateResponse = Record<string, unknown> & { email?: string };
+type ValidateResponse = Record<string, unknown> & { email?: string; license_valid_until?: number };
 
 type NiveauHandjeRowInput = {
   date?: unknown;
@@ -169,6 +169,7 @@ const NIVEAU_HAND_REF_MAP_STORAGE_KEY = "kleuterapp_niveau_hand_ref_map";
 const CARD_BG_COLOR_STORAGE_KEY = "kleuterapp_card_bg_color";
 const CONNECTED_EMAIL_STORAGE_KEY = "kleuterapp_connected_email";
 const CARD_BG_ALPHA_STORAGE_KEY = "kleuterapp_card_bg_alpha";
+const LICENCE_VALID_UNTIL_STORAGE_KEY = "kleuterapp_license_valid_until";
 const DEFAULT_REPORT_CONTENT_OPTIONS: ReportContentOptions = {
   photoPage: true,
   extraPhotosPage: false,
@@ -188,6 +189,11 @@ const uploadedBackgrounds = new Map<string, Promise<ImageRef>>();
 const uploadedTapes = new Map<string, Promise<ImageRef>>();
 const uploadedNiveauHands = new Map<string, Promise<ImageRef>>();
 let currentCardBgColor = "#ffffff";
+
+function formatUnixDate(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+}
 
 function blendWithWhite(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -2694,7 +2700,7 @@ type GenerateScreenProps = {
   isAuthenticated: boolean;
   onGenerate: (students: Student[], template: "rapport", extraTexts: PageExtraTexts) => void;
   generationError?: string;
-
+  licenseValidUntil: number | null;
   reportContentOptions: ReportContentOptions;
   onReportContentOptionChange: (key: keyof ReportContentOptions, value: boolean) => void;
   canAddPage: boolean;
@@ -2706,6 +2712,7 @@ function GenerateScreen({
   isAuthenticated,
   onGenerate,
   generationError,
+  licenseValidUntil,
   reportContentOptions,
   onReportContentOptionChange,
   canAddPage,
@@ -2825,6 +2832,7 @@ function GenerateScreen({
         ? [selectedStudent]
         : []
       : groupStudents;
+  const licenseExpired = licenseValidUntil !== null && licenseValidUntil < Math.floor(Date.now() / 1000);
 
   if (loading) return <LoadingIndicator />;
   if (!isAuthenticated) {
@@ -3220,7 +3228,15 @@ function GenerateScreen({
             />
           </Text>
         )}
-        {studentsToGenerate.length === 0 ? (
+        {licenseExpired ? (
+          <Alert tone="warn">
+            {intl.formatMessage({
+              id: "generate.license.expired",
+              defaultMessage: "Je maatwerklicentie is verlopen, verleng je licentie in MijnKleutergroep.",
+              description: "Warning shown instead of the generate button when the user's custom report licence has expired. 'MijnKleutergroep' is a proper name — do not translate.",
+            })}
+          </Alert>
+        ) : studentsToGenerate.length === 0 ? (
           <Text tone="tertiary">
             {selectionMode === "student"
               ? intl.formatMessage({
@@ -3273,11 +3289,13 @@ function GenerateScreen({
 function SupportScreen({
   isAuthenticated,
   connectedEmail,
+  licenseValidUntil,
   onLogin,
   onDisconnect,
 }: {
   isAuthenticated: boolean;
   connectedEmail: string;
+  licenseValidUntil: number | null;
   onLogin: () => Promise<void>;
   onDisconnect: () => Promise<void>;
 }) {
@@ -3296,6 +3314,8 @@ function SupportScreen({
       setLoading(false);
     }
   };
+
+  const licenseExpired = licenseValidUntil !== null && licenseValidUntil < Math.floor(Date.now() / 1000);
 
   return (
     <Rows spacing="3u">
@@ -3344,6 +3364,31 @@ function SupportScreen({
 
         {isAuthenticated && connectedEmail && (
           <Text tone="secondary">{connectedEmail}</Text>
+        )}
+        {isAuthenticated && licenseValidUntil !== null && (
+          licenseExpired ? (
+            <Alert tone="warn">
+              {intl.formatMessage(
+                {
+                  id: "support.license.expired",
+                  defaultMessage: "Je maatwerklicentie is verlopen op {datum}, verleng je licentie in MijnKleutergroep.",
+                  description: "Warning shown near the disconnect button when the user's custom report licence has expired. {datum} is replaced by the expiry date (dd-mm-yyyy). 'MijnKleutergroep' is a proper name — do not translate.",
+                },
+                { datum: formatUnixDate(licenseValidUntil) },
+              )}
+            </Alert>
+          ) : (
+            <Text tone="tertiary">
+              {intl.formatMessage(
+                {
+                  id: "support.license.validUntil",
+                  defaultMessage: "Maatwerkrapportlicentie geldig tot: {datum}",
+                  description: "Text shown near the disconnect button indicating when the user's custom report licence expires. {datum} is replaced by the expiry date (dd-mm-yyyy).",
+                },
+                { datum: formatUnixDate(licenseValidUntil) },
+              )}
+            </Text>
+          )
         )}
         {isAuthenticated && (
           <Button variant="secondary" onClick={onDisconnect} stretch>
@@ -3593,6 +3638,10 @@ export const App = () => {
   const [connectedEmail, setConnectedEmail] = useState<string>(
     () => localStorage.getItem(CONNECTED_EMAIL_STORAGE_KEY) ?? "",
   );
+  const [licenseValidUntil, setLicenseValidUntil] = useState<number | null>(() => {
+    const stored = localStorage.getItem(LICENCE_VALID_UNTIL_STORAGE_KEY);
+    return stored ? parseInt(stored, 10) : null;
+  });
   const [appState, setAppState] = useState<AppState>("idle");
   const [activeTab, setActiveTab] = useState<AppTab>("settings");
 
@@ -3608,6 +3657,10 @@ export const App = () => {
             const email = info.email ?? "";
             localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
             setConnectedEmail(email);
+            if (typeof info.license_valid_until === "number") {
+              localStorage.setItem(LICENCE_VALID_UNTIL_STORAGE_KEY, String(info.license_valid_until));
+              setLicenseValidUntil(info.license_valid_until);
+            }
           } catch { /* e-mail ophalen mislukt, niet kritiek */ }
         }
       })
@@ -3862,6 +3915,10 @@ export const App = () => {
       const email = info.email ?? "";
       localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
       setConnectedEmail(email);
+      if (typeof info.license_valid_until === "number") {
+        localStorage.setItem(LICENCE_VALID_UNTIL_STORAGE_KEY, String(info.license_valid_until));
+        setLicenseValidUntil(info.license_valid_until);
+      }
     } catch { /* e-mail ophalen mislukt, niet kritiek */ }
     setIsAuthenticated(true);
     setAppState("idle");
@@ -3887,7 +3944,9 @@ export const App = () => {
     ].forEach((key) => localStorage.removeItem(key));
     niveauHandRefToColor.clear();
     localStorage.removeItem(CONNECTED_EMAIL_STORAGE_KEY);
+    localStorage.removeItem(LICENCE_VALID_UNTIL_STORAGE_KEY);
     setConnectedEmail("");
+    setLicenseValidUntil(null);
     await oauthClient.deauthorize();
     setIsAuthenticated(false);
     setAppState("idle");
@@ -4441,6 +4500,7 @@ export const App = () => {
         <SupportScreen
           isAuthenticated={isAuthenticated}
           connectedEmail={connectedEmail}
+          licenseValidUntil={licenseValidUntil}
           onLogin={handleLogin}
           onDisconnect={handleDisconnect}
         />
@@ -4553,6 +4613,7 @@ export const App = () => {
                 isAuthenticated={isAuthenticated}
                 onGenerate={handleGenerate}
                 generationError={generationError}
+                licenseValidUntil={licenseValidUntil}
                 reportContentOptions={reportContentOptions}
                 onReportContentOptionChange={handleReportContentOptionChange}
                 canAddPage={canAddPage}
@@ -4607,6 +4668,7 @@ export const App = () => {
               <SupportScreen
                 isAuthenticated={isAuthenticated}
                 connectedEmail={connectedEmail}
+                licenseValidUntil={licenseValidUntil}
                 onLogin={handleLogin}
                 onDisconnect={handleDisconnect}
               />
