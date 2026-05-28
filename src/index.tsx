@@ -7,20 +7,20 @@ import { App } from "./app";
 import "@canva/app-ui-kit/styles.css";
 
 async function render() {
-	const root = createRoot(document.getElementById("root") as Element);
+  const root = createRoot(document.getElementById("root") as Element);
 
-	root.render(
-		<AppI18nProvider>
-			<AppUiProvider>
-				<App />
-			</AppUiProvider>
-		</AppI18nProvider>,
-	);
+  root.render(
+    <AppI18nProvider>
+      <AppUiProvider>
+        <App />
+      </AppUiProvider>
+    </AppI18nProvider>,
+  );
 }
 
 const designEditor: DesignEditorIntent = { render };
 prepareDesignEditor(designEditor);
 
 if (module.hot) {
-	module.hot.accept("./app", render);
+  module.hot.accept("./app", render);
 }

@@ -29,7 +29,7 @@ import {
   TabPanels,
   Tabs,
 } from "@canva/app-ui-kit";
-import type { ImageRef, FontRef } from "@canva/asset";
+import type { ImageRef, FontRef, ImageMimeType } from "@canva/asset";
 
 declare const BACKEND_HOST: string;
 
@@ -80,11 +80,7 @@ type NiveauOption = {
   color: string;
 };
 
-
-type AppState =
-  | "idle"
-  | "generating"
-  | "done";
+type AppState = "idle" | "generating" | "done";
 
 type AppTab = "settings" | "generate" | "support";
 
@@ -119,7 +115,10 @@ type NiveauHandjeRow = {
 
 type NiveauHandjesResponse = Record<string, NiveauHandjeRow[]>;
 
-type ValidateResponse = Record<string, unknown> & { email?: string; license_valid_until?: number };
+type ValidateResponse = Record<string, unknown> & {
+  email?: string;
+  license_valid_until?: number;
+};
 
 type NiveauHandjeRowInput = {
   date?: unknown;
@@ -153,6 +152,10 @@ type GroeigrafiekItem = {
   leerlijn: string;
   chart: string; // data:image/png;base64,...
 };
+
+type AddPageInput = NonNullable<Parameters<typeof addPage>[0]>;
+type AddPageElement = NonNullable<AddPageInput["elements"]>[number];
+type PageDimensions = NonNullable<AddPageInput["dimensions"]>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -203,19 +206,35 @@ function blendWithWhite(hex: string, alpha: number): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const t = Math.max(0, Math.min(100, alpha)) / 100;
-  const blend = (c: number) => Math.round(255 * (1 - t) + c * t).toString(16).padStart(2, "0");
+  const blend = (c: number) =>
+    Math.round(255 * (1 - t) + c * t)
+      .toString(16)
+      .padStart(2, "0");
   return `#${blend(r)}${blend(g)}${blend(b)}`;
 }
 
 const niveauHandRefToColor = new Map<string, string>(
-  (() => { try { const s = localStorage.getItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY); return s ? JSON.parse(s) as [string, string][] : []; } catch { return []; } })()
+  (() => {
+    try {
+      const s = localStorage.getItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY);
+      return s ? (JSON.parse(s) as [string, string][]) : [];
+    } catch {
+      return [];
+    }
+  })(),
 );
 function saveNiveauHandRefMap() {
-  try { localStorage.setItem(NIVEAU_HAND_REF_MAP_STORAGE_KEY, JSON.stringify([...niveauHandRefToColor])); } catch { /* ignore storage failures */ }
+  try {
+    localStorage.setItem(
+      NIVEAU_HAND_REF_MAP_STORAGE_KEY,
+      JSON.stringify([...niveauHandRefToColor]),
+    );
+  } catch {
+    /* ignore storage failures */
+  }
 }
 const NIVEAU_HANDS_BASE_URL =
   "https://login.mijnkleutergroep.nl/archon-content/plugins/mkg2/assets/rapporten/handjes";
-
 
 function isA4Dimensions(width: number, height: number): boolean {
   const ratio = width / height;
@@ -273,6 +292,10 @@ function getStoredSelectedFont(storageKey: string): SelectedFont | null {
   } catch {
     return null;
   }
+}
+
+function hasRefField(value: unknown): value is { ref: unknown } {
+  return typeof value === "object" && value != null && "ref" in value;
 }
 
 async function getCurrentPageDimensions(): Promise<
@@ -347,7 +370,9 @@ async function apiFetch(
   action: ApiAction,
   params?: Record<string, string | number>,
 ) {
-  const tokenResponse = await oauthClient.getAccessToken({ scope: OAUTH_SCOPE });
+  const tokenResponse = await oauthClient.getAccessToken({
+    scope: OAUTH_SCOPE,
+  });
   if (!tokenResponse) throw new Error("not_authenticated");
   const url = buildApiUrl(action, params);
   const res = await fetch(url, {
@@ -388,9 +413,9 @@ function toUnixTimestamp(date: string, endOfDay = false): number | undefined {
   );
 }
 
-function buildDateRangeParams(dateRange: ReportDateRange):
-  | { van_datum: number; tot_datum: number }
-  | undefined {
+function buildDateRangeParams(
+  dateRange: ReportDateRange,
+): { van_datum: number; tot_datum: number } | undefined {
   const vanDatum = toUnixTimestamp(dateRange.fromDate);
   const totDatum = toUnixTimestamp(dateRange.toDate, true);
 
@@ -430,14 +455,20 @@ function parseNiveauHandDate(value: string): number | undefined {
   const isoMatch = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (isoMatch) {
     const [, yearRaw, monthRaw, dayRaw] = isoMatch;
-    const timestamp = Date.UTC(Number(yearRaw), Number(monthRaw) - 1, Number(dayRaw));
+    const timestamp = Date.UTC(
+      Number(yearRaw),
+      Number(monthRaw) - 1,
+      Number(dayRaw),
+    );
     return Number.isNaN(timestamp) ? undefined : timestamp;
   }
 
   return undefined;
 }
 
-function normalizeNiveauHandjesResponse(value: unknown): NiveauHandjesResponse | undefined {
+function normalizeNiveauHandjesResponse(
+  value: unknown,
+): NiveauHandjesResponse | undefined {
   if (typeof value === "string") {
     try {
       return normalizeNiveauHandjesResponse(JSON.parse(value));
@@ -464,7 +495,9 @@ function normalizeNiveauHandjesResponse(value: unknown): NiveauHandjesResponse |
       const ontwikkellijnSource =
         typed.ontwikkellijn ?? typed.ontwikkel_lijn ?? typed.line;
       const ontwikkellijn =
-        typeof ontwikkellijnSource === "string" ? ontwikkellijnSource.trim() : "";
+        typeof ontwikkellijnSource === "string"
+          ? ontwikkellijnSource.trim()
+          : "";
       const niveaukleurSource = typed.niveaukleur ?? typed.kleur ?? typed.color;
       const niveaukleur =
         typeof niveaukleurSource === "string"
@@ -479,7 +512,10 @@ function normalizeNiveauHandjesResponse(value: unknown): NiveauHandjesResponse |
       if (!groupedFromRows.has(date)) {
         groupedFromRows.set(date, []);
       }
-      groupedFromRows.get(date)!.push({ vak, ontwikkellijn, niveaukleur });
+      const groupedRows = groupedFromRows.get(date);
+      if (groupedRows) {
+        groupedRows.push({ vak, ontwikkellijn, niveaukleur });
+      }
     }
 
     if (sawFlatRows) {
@@ -537,7 +573,8 @@ function normalizeNiveauHandjesResponse(value: unknown): NiveauHandjesResponse |
           typeof ontwikkellijnSource === "string"
             ? ontwikkellijnSource.trim()
             : "";
-        const niveaukleurSource = typed.niveaukleur ?? typed.kleur ?? typed.color;
+        const niveaukleurSource =
+          typed.niveaukleur ?? typed.kleur ?? typed.color;
         const niveaukleur =
           typeof niveaukleurSource === "string"
             ? niveaukleurSource.trim().replace(/^#/, "").toLowerCase()
@@ -574,7 +611,9 @@ async function fetchNiveaus(): Promise<NiveauOption[]> {
 }
 
 async function fetchStudentPhotos(studentId: string): Promise<StudentPhoto[]> {
-  return apiFetch("LEERLINGPHOTOS", { leerling_id: studentId }) as Promise<StudentPhoto[]>;
+  return apiFetch("LEERLINGPHOTOS", { leerling_id: studentId }) as Promise<
+    StudentPhoto[]
+  >;
 }
 
 async function fetchStudents(groupId?: string): Promise<Student[]> {
@@ -651,18 +690,26 @@ async function fetchNiveauHandjes(
         variantIndex: i,
         params,
         rawType: Array.isArray(raw) ? "array" : typeof raw,
-        rawKeys: raw && typeof raw === "object" ? Object.keys(raw as Record<string, unknown>) : [],
+        rawKeys:
+          raw && typeof raw === "object"
+            ? Object.keys(raw as Record<string, unknown>)
+            : [],
       });
       continue;
     }
 
-    const hasAtLeastOneRow = Object.values(normalized).some((rows) => rows.length > 0);
+    const hasAtLeastOneRow = Object.values(normalized).some(
+      (rows) => rows.length > 0,
+    );
     if (hasAtLeastOneRow) {
       console.info("[NIVEAUHANDJES] Normalisatie gelukt", {
         variantIndex: i,
         params,
         dates: Object.keys(normalized),
-        totalRows: Object.values(normalized).reduce((sum, rows) => sum + rows.length, 0),
+        totalRows: Object.values(normalized).reduce(
+          (sum, rows) => sum + rows.length,
+          0,
+        ),
       });
       return normalized;
     }
@@ -717,7 +764,7 @@ async function fetchGroeigrafieken(
 }
 
 async function fetchLogoUrl(): Promise<string | undefined> {
-  const data = await apiFetch("LOGO") as { url?: string };
+  const data = (await apiFetch("LOGO")) as { url?: string };
   return data?.url;
 }
 
@@ -730,9 +777,10 @@ async function uploadLogo(url: string): Promise<ImageRef> {
   }
 
   const { dataUrl, mimeType } = await fetchAsDataUrl(url);
+  const uploadMimeType = mimeType as ImageMimeType;
   const uploadPromise = upload({
     type: "image",
-    mimeType: mimeType as any,
+    mimeType: uploadMimeType,
     url: dataUrl,
     thumbnailUrl: dataUrl,
     aiDisclosure: "none",
@@ -742,7 +790,9 @@ async function uploadLogo(url: string): Promise<ImageRef> {
   return uploadPromise;
 }
 
-async function resolveImageAspectRatio(url: string): Promise<number | undefined> {
+async function resolveImageAspectRatio(
+  url: string,
+): Promise<number | undefined> {
   return new Promise((resolve) => {
     const image = new Image();
     let settled = false;
@@ -772,7 +822,9 @@ function getStudentPhotoAltText(student: Student): string {
   return `leerling_id:${student.id}|${student.name}`;
 }
 
-function extractStudentIdFromSelectionContent(content: unknown): string | undefined {
+function extractStudentIdFromSelectionContent(
+  content: unknown,
+): string | undefined {
   if (!content || typeof content !== "object") {
     return undefined;
   }
@@ -798,7 +850,9 @@ function normalizeNiveauColor(color: string): string {
   return color.trim().replace(/^#/, "").toLowerCase();
 }
 
-function extractNiveauColorFromSelectionContent(content: unknown): string | undefined {
+function extractNiveauColorFromSelectionContent(
+  content: unknown,
+): string | undefined {
   if (!content || typeof content !== "object") {
     return undefined;
   }
@@ -834,7 +888,11 @@ function extractNiveauColorFromSelectionContent(content: unknown): string | unde
   const typed = content as { type?: string; name?: string };
 
   // 3. Probeer type veld
-  if (typed.type && typeof typed.type === "string" && typed.type.toLowerCase().includes("handje")) {
+  if (
+    typed.type &&
+    typeof typed.type === "string" &&
+    typed.type.toLowerCase().includes("handje")
+  ) {
     const m = typed.type.match(/niveauhandje-([a-z]+)/i);
     const matchedColor = m?.[1];
     if (matchedColor) return normalizeNiveauColor(matchedColor);
@@ -897,7 +955,9 @@ function imageRefKeys(ref: unknown): string[] {
 
 // ─── Page generation ──────────────────────────────────────────────────────────
 
-async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; mimeType: string }> {
+async function fetchAsDataUrl(
+  url: string,
+): Promise<{ dataUrl: string; mimeType: string }> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch image (HTTP ${response.status})`);
@@ -939,11 +999,15 @@ async function resolveImageDimensions(url: string): Promise<{
 
 async function uploadPhoto(url: string): Promise<ImageRef> {
   const { dataUrl, mimeType } = url.startsWith("data:")
-    ? { dataUrl: url, mimeType: (url.split(";")[0] ?? "").split(":")[1] ?? "image/jpeg" }
+    ? {
+        dataUrl: url,
+        mimeType: (url.split(";")[0] ?? "").split(":")[1] ?? "image/jpeg",
+      }
     : await fetchAsDataUrl(url);
+  const uploadMimeType = mimeType as ImageMimeType;
   const asset = await upload({
     type: "image",
-    mimeType: mimeType as any,
+    mimeType: uploadMimeType,
     url: dataUrl,
     thumbnailUrl: dataUrl,
     aiDisclosure: "none",
@@ -958,7 +1022,9 @@ async function uploadBackground(url: string): Promise<ImageRef> {
   }
 
   const { width, height } = await resolveImageDimensions(url);
-  const mimeType = url.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+  const mimeType = url.toLowerCase().endsWith(".png")
+    ? "image/png"
+    : "image/jpeg";
 
   const uploadPromise = upload({
     type: "image",
@@ -1012,7 +1078,15 @@ async function uploadNiveauHand(url: string): Promise<ImageRef> {
     aiDisclosure: "none",
   }).then((asset) => {
     if (colorMatch) {
-      try { niveauHandRefToColor.set(JSON.stringify(asset.ref), colorMatch[1] ?? ""); saveNiveauHandRefMap(); } catch { /* ignore map persistence failures */ }
+      try {
+        niveauHandRefToColor.set(
+          JSON.stringify(asset.ref),
+          colorMatch[1] ?? "",
+        );
+        saveNiveauHandRefMap();
+      } catch {
+        /* ignore map persistence failures */
+      }
     }
     return asset.ref;
   });
@@ -1026,7 +1100,8 @@ function createPlaceholderDataUrl(): string {
   canvas.width = 600;
   canvas.height = 600;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+  if (!ctx)
+    return "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
   ctx.fillStyle = "#efefef";
   ctx.fillRect(0, 0, 600, 600);
   return canvas.toDataURL("image/jpeg", 0.8);
@@ -1081,7 +1156,7 @@ async function buildPolaroidElements(
   const tapeWidth = 132;
   const tapeHeight = 36;
 
-  const elements: any[] = [];
+  const elements: AddPageElement[] = [];
 
   for (let index = 0; index < 4; index++) {
     const row = Math.floor(index / 2);
@@ -1090,8 +1165,20 @@ async function buildPolaroidElements(
     const top = startTop + row * (polaroidHeight + rowGap);
 
     elements.push(
-      createRectangleShape(top + 5, left + 5, polaroidWidth, polaroidHeight, "#d9d9d9"),
-      createRectangleShape(top, left, polaroidWidth, polaroidHeight, currentCardBgColor),
+      createRectangleShape(
+        top + 5,
+        left + 5,
+        polaroidWidth,
+        polaroidHeight,
+        "#d9d9d9",
+      ),
+      createRectangleShape(
+        top,
+        left,
+        polaroidWidth,
+        polaroidHeight,
+        currentCardBgColor,
+      ),
       {
         type: "image",
         ref: placeholderRef,
@@ -1109,9 +1196,7 @@ async function buildPolaroidElements(
         top: top + polaroidHeight - captionHeight + 10,
         left: left + imageInset,
         width: polaroidWidth - imageInset * 2,
-        children: [
-          currentPolaroidNoteText,
-        ],
+        children: [currentPolaroidNoteText],
         textAlign: "center",
         ...fontProps(bodyFont),
       },
@@ -1163,7 +1248,7 @@ async function buildExtraPolaroidPageElements(
   const tapeWidth = 132;
   const tapeHeight = 36;
 
-  const elements: any[] = [];
+  const elements: AddPageElement[] = [];
 
   for (let index = 0; index < 6; index++) {
     const row = Math.floor(index / 2);
@@ -1172,8 +1257,20 @@ async function buildExtraPolaroidPageElements(
     const top = startTop + row * (polaroidHeight + rowGap);
 
     elements.push(
-      createRectangleShape(top + 5, left + 5, polaroidWidth, polaroidHeight, "#d9d9d9"),
-      createRectangleShape(top, left, polaroidWidth, polaroidHeight, currentCardBgColor),
+      createRectangleShape(
+        top + 5,
+        left + 5,
+        polaroidWidth,
+        polaroidHeight,
+        "#d9d9d9",
+      ),
+      createRectangleShape(
+        top,
+        left,
+        polaroidWidth,
+        polaroidHeight,
+        currentCardBgColor,
+      ),
     );
 
     if (placeholderRef) {
@@ -1197,14 +1294,13 @@ async function buildExtraPolaroidPageElements(
       left: left + imageInset,
       width: polaroidWidth - imageInset * 2,
       children: withPhoto
-        ? [
-            currentPolaroidNoteText,
-          ]
+        ? [currentPolaroidNoteText]
         : [
             intl
               ? intl.formatMessage({
                   defaultMessage: "Type your text here...",
-                  description: "Placeholder text on an empty polaroid card in generated report pages.",
+                  description:
+                    "Placeholder text on an empty polaroid card in generated report pages.",
                 })
               : "Type your text here...",
           ],
@@ -1262,10 +1358,7 @@ async function generateExtraPolaroidPage(
   await addPageWithRetry({
     title: student.name,
     background,
-    elements: [
-      ...elements,
-      ...buildPageFooterElements(student.name, intl),
-    ],
+    elements: [...elements, ...buildPageFooterElements(student.name, intl)],
   });
 
   return placeholderRef;
@@ -1366,10 +1459,13 @@ async function generateColoredLevelHandsPage(
   const xDateStart = xText + textColWidth;
 
   const vakOrder: string[] = [];
-  const vakRows = new Map<string, {
-    ontwikkellijnen: string[];
-    colorsPerLine: Map<string, Record<string, string>>;
-  }>();
+  const vakRows = new Map<
+    string,
+    {
+      ontwikkellijnen: string[];
+      colorsPerLine: Map<string, Record<string, string>>;
+    }
+  >();
 
   dateEntries.forEach(({ date, rows }) => {
     rows.forEach((row) => {
@@ -1388,17 +1484,30 @@ async function generateColoredLevelHandsPage(
         });
         vakOrder.push(vak);
       }
-      const vakData = vakRows.get(vak)!;
+      const vakData = vakRows.get(vak);
+      if (!vakData) {
+        return;
+      }
       if (!vakData.colorsPerLine.has(ontwikkellijn)) {
         vakData.ontwikkellijnen.push(ontwikkellijn);
         vakData.colorsPerLine.set(ontwikkellijn, {});
       }
-      vakData.colorsPerLine.get(ontwikkellijn)![date] = niveaukleur;
+      const colorsForLine = vakData.colorsPerLine.get(ontwikkellijn);
+      if (colorsForLine) {
+        colorsForLine[date] = niveaukleur;
+      }
     });
   });
 
-  const renderRows: (| { type: "vak"; vak: string }
-    | { type: "ontwikkellijn"; vak: string; ontwikkellijn: string; colors: Record<string, string> })[] = [];
+  const renderRows: (
+    | { type: "vak"; vak: string }
+    | {
+        type: "ontwikkellijn";
+        vak: string;
+        ontwikkellijn: string;
+        colors: Record<string, string>;
+      }
+  )[] = [];
 
   vakOrder.forEach((vak) => {
     const vakData = vakRows.get(vak);
@@ -1417,7 +1526,8 @@ async function generateColoredLevelHandsPage(
   const textBoxH = 32;
   const textBoxPadH = 14;
   const textBoxPadV = 9;
-  const maxBodyHeight = PAGE_H - tableTop - headerHeight - (bottomText.trim() ? 110 : 80);
+  const maxBodyHeight =
+    PAGE_H - tableTop - headerHeight - (bottomText.trim() ? 110 : 80);
   const visibleRows: typeof renderRows = [];
   let usedBodyHeight = 0;
 
@@ -1432,7 +1542,7 @@ async function generateColoredLevelHandsPage(
 
   const tableHeight = headerHeight + usedBodyHeight;
 
-  const elements: any[] = [
+  const elements: AddPageElement[] = [
     {
       type: "text" as const,
       top: 40,
@@ -1443,7 +1553,8 @@ async function generateColoredLevelHandsPage(
           ? intl.formatMessage(
               {
                 defaultMessage: "Development goals of {name}",
-                description: "Page title for the colored level hands page, including student name.",
+                description:
+                  "Page title for the colored level hands page, including student name.",
               },
               { name: student.name },
             )
@@ -1458,13 +1569,41 @@ async function generateColoredLevelHandsPage(
   if (topText.trim()) {
     const boxTop = 72;
     elements.push(
-      createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
-      createRectangleShape(boxTop, margin, tableWidth, textBoxH, currentCardBgColor),
-      { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
+      createRectangleShape(
+        boxTop + 3,
+        margin + 3,
+        tableWidth,
+        textBoxH,
+        "#cccccc",
+      ),
+      createRectangleShape(
+        boxTop,
+        margin,
+        tableWidth,
+        textBoxH,
+        currentCardBgColor,
+      ),
+      {
+        type: "text" as const,
+        top: boxTop + textBoxPadV,
+        left: margin + textBoxPadH,
+        width: tableWidth - textBoxPadH * 2,
+        children: [topText],
+        fontSize: 13,
+        ...fontProps(bodyFont),
+      },
     );
   }
 
-  elements.push(createRectangleShape(tableTop, margin, tableWidth, tableHeight, currentCardBgColor));
+  elements.push(
+    createRectangleShape(
+      tableTop,
+      margin,
+      tableWidth,
+      tableHeight,
+      currentCardBgColor,
+    ),
+  );
 
   if (visibleRows.length === 0) {
     elements.push(
@@ -1477,7 +1616,8 @@ async function generateColoredLevelHandsPage(
           intl
             ? intl.formatMessage({
                 defaultMessage: "No level hands found for the selected period.",
-                description: "Empty-state message when no colored level hand data exists for the selected date range.",
+                description:
+                  "Empty-state message when no colored level hand data exists for the selected date range.",
               })
             : "No level hands found for the selected period.",
         ],
@@ -1495,7 +1635,8 @@ async function generateColoredLevelHandsPage(
             ? intl.formatMessage(
                 {
                   defaultMessage: "Period: {fromDate} - {toDate}",
-                  description: "Date period label shown in the empty-state of the colored level hands page.",
+                  description:
+                    "Date period label shown in the empty-state of the colored level hands page.",
                 },
                 {
                   fromDate: dateRange.fromDate || "-",
@@ -1551,7 +1692,10 @@ async function generateColoredLevelHandsPage(
     });
 
     for (let i = 0; i < dates.length; i++) {
-      const date = dates[i]!;
+      const date = dates[i];
+      if (!date) {
+        continue;
+      }
       const color = row.colors[date];
       if (!color) {
         continue;
@@ -1589,7 +1733,8 @@ async function generateColoredLevelHandsPage(
         intl
           ? intl.formatMessage({
               defaultMessage: "Not all development goals fit on this page.",
-              description: "Warning shown when the colored level hands content overflows a single page.",
+              description:
+                "Warning shown when the colored level hands content overflows a single page.",
             })
           : "Not all development goals fit on this page.",
       ],
@@ -1602,9 +1747,29 @@ async function generateColoredLevelHandsPage(
   if (bottomText.trim()) {
     const boxTop = contentBottom + 16;
     elements.push(
-      createRectangleShape(boxTop + 3, margin + 3, tableWidth, textBoxH, "#cccccc"),
-      createRectangleShape(boxTop, margin, tableWidth, textBoxH, currentCardBgColor),
-      { type: "text" as const, top: boxTop + textBoxPadV, left: margin + textBoxPadH, width: tableWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
+      createRectangleShape(
+        boxTop + 3,
+        margin + 3,
+        tableWidth,
+        textBoxH,
+        "#cccccc",
+      ),
+      createRectangleShape(
+        boxTop,
+        margin,
+        tableWidth,
+        textBoxH,
+        currentCardBgColor,
+      ),
+      {
+        type: "text" as const,
+        top: boxTop + textBoxPadV,
+        left: margin + textBoxPadH,
+        width: tableWidth - textBoxPadH * 2,
+        children: [bottomText],
+        fontSize: 13,
+        ...fontProps(bodyFont),
+      },
     );
   }
 
@@ -1651,7 +1816,10 @@ async function generateGoalDescriptionsPage(
   for (const group of grouped) {
     for (const item of group.items) {
       if (!handRefs.has(item.niveaukleur)) {
-        handRefs.set(item.niveaukleur, await uploadNiveauHand(buildNiveauHandImageUrl(item.niveaukleur)));
+        handRefs.set(
+          item.niveaukleur,
+          await uploadNiveauHand(buildNiveauHandImageUrl(item.niveaukleur)),
+        );
       }
     }
   }
@@ -1661,7 +1829,7 @@ async function generateGoalDescriptionsPage(
   let pageIndex = 0;
 
   while (gIdx < grouped.length) {
-    const elements: any[] = [
+    const elements: AddPageElement[] = [
       {
         type: "text" as const,
         top: 40,
@@ -1671,7 +1839,8 @@ async function generateGoalDescriptionsPage(
           intl
             ? intl.formatMessage({
                 defaultMessage: "Development goals",
-                description: "Page title for the development goals description page.",
+                description:
+                  "Page title for the development goals description page.",
               })
             : "Development goals",
         ],
@@ -1679,14 +1848,23 @@ async function generateGoalDescriptionsPage(
         fontWeight: "bold" as const,
         ...fontProps(headingFont),
       },
-      createRectangleShape(panelTop, panelMargin, panelWidth, panelHeight, currentCardBgColor),
+      createRectangleShape(
+        panelTop,
+        panelMargin,
+        panelWidth,
+        panelHeight,
+        currentCardBgColor,
+      ),
     ];
 
     let cursorTop = panelTop + 16;
     let pageFull = false;
 
     while (gIdx < grouped.length && !pageFull) {
-      const group = grouped[gIdx]!;
+      const group = grouped[gIdx];
+      if (!group) {
+        break;
+      }
 
       if (cursorTop + groupTitleHeight > maxContentBottom) {
         pageFull = true;
@@ -1711,8 +1889,15 @@ async function generateGoalDescriptionsPage(
           break;
         }
 
-        const item = group.items[iIdx]!;
-        const handRef = handRefs.get(item.niveaukleur)!;
+        const item = group.items[iIdx];
+        if (!item) {
+          break;
+        }
+        const handRef = handRefs.get(item.niveaukleur);
+        if (!handRef) {
+          iIdx++;
+          continue;
+        }
 
         elements.push(
           {
@@ -1722,7 +1907,10 @@ async function generateGoalDescriptionsPage(
             left: contentLeft,
             width: 18,
             height: 18,
-            altText: { text: `niveaukleur:${item.niveaukleur}`, decorative: true },
+            altText: {
+              text: `niveaukleur:${item.niveaukleur}`,
+              decorative: true,
+            },
           },
           {
             type: "text" as const,
@@ -1755,17 +1943,19 @@ async function generateGoalDescriptionsPage(
       }
     }
 
-    const title = pageIndex === 0
-      ? student.name
-      : intl
-        ? intl.formatMessage(
-            {
-              defaultMessage: "{name} (goals {page})",
-              description: "Title for continued development goals pages with page number.",
-            },
-            { name: student.name, page: pageIndex + 1 },
-          )
-        : `${student.name} (goals ${pageIndex + 1})`;
+    const title =
+      pageIndex === 0
+        ? student.name
+        : intl
+          ? intl.formatMessage(
+              {
+                defaultMessage: "{name} (goals {page})",
+                description:
+                  "Title for continued development goals pages with page number.",
+              },
+              { name: student.name, page: pageIndex + 1 },
+            )
+          : `${student.name} (goals ${pageIndex + 1})`;
     await addPageWithRetry({
       title,
       background,
@@ -1804,7 +1994,10 @@ async function generateGoalLevelsPage(
   const grouped = new Map<string, OntwikkelniveauRow[]>();
   doelen.forEach((item) => {
     if (!grouped.has(item.ontwikkellijn)) grouped.set(item.ontwikkellijn, []);
-    grouped.get(item.ontwikkellijn)!.push(item);
+    const groupedItems = grouped.get(item.ontwikkellijn);
+    if (groupedItems) {
+      groupedItems.push(item);
+    }
   });
 
   // Pre-upload all niveau hand images once
@@ -1814,22 +2007,37 @@ async function generateGoalLevelsPage(
       for (const c of ["1", "2"] as const) {
         const color = item.niveaukleur?.[c];
         if (color && !handRefCache.has(color)) {
-          handRefCache.set(color, await uploadNiveauHand(buildNiveauHandImageUrl(color)));
+          handRefCache.set(
+            color,
+            await uploadNiveauHand(buildNiveauHandImageUrl(color)),
+          );
         }
       }
     }
   }
 
-  type Block = { ontwikkellijn: string; items: OntwikkelniveauRow[]; estHeight: number; estElements: number };
+  type Block = {
+    ontwikkellijn: string;
+    items: OntwikkelniveauRow[];
+    estHeight: number;
+    estElements: number;
+  };
   const allBlocks: Block[] = [];
   for (const [ontwikkellijn, items] of grouped.entries()) {
-    const estElements = 1 + items.reduce((sum, item) => {
-      let e = 1;
-      if (item.niveaukleur?.["1"]) e++;
-      if (item.niveaukleur?.["2"]) e++;
-      return sum + e;
-    }, 0);
-    allBlocks.push({ ontwikkellijn, items, estHeight: 26 + items.length * 30 + 8, estElements });
+    const estElements =
+      1 +
+      items.reduce((sum, item) => {
+        let e = 1;
+        if (item.niveaukleur?.["1"]) e++;
+        if (item.niveaukleur?.["2"]) e++;
+        return sum + e;
+      }, 0);
+    allBlocks.push({
+      ontwikkellijn,
+      items,
+      estHeight: 26 + items.length * 30 + 8,
+      estElements,
+    });
   }
 
   // Distribute blocks across pages respecting element limit (100) and column height
@@ -1844,7 +2052,10 @@ async function generateGoalLevelsPage(
     let rH = 0;
 
     while (bIdx < allBlocks.length) {
-      const block = allBlocks[bIdx]!;
+      const block = allBlocks[bIdx];
+      if (!block) {
+        break;
+      }
       if (pageElements + block.estElements > MAX_CONTENT_ELEMENTS) break;
       const goLeft = lH <= rH;
       if (goLeft && lH + block.estHeight > colContentHeight) break;
@@ -1858,8 +2069,11 @@ async function generateGoalLevelsPage(
 
     // Safety: always advance at least one block to avoid infinite loop
     if (pageBlocks.length === 0 && bIdx < allBlocks.length) {
-      pageBlocks.push(allBlocks[bIdx]!);
-      bIdx++;
+      const block = allBlocks[bIdx];
+      if (block) {
+        pageBlocks.push(block);
+        bIdx++;
+      }
     }
 
     // Balance pageBlocks between left and right columns
@@ -1868,15 +2082,24 @@ async function generateGoalLevelsPage(
     let ll = 0;
     let rr = 0;
     for (const b of pageBlocks) {
-      if (ll <= rr) { left.push(b); ll += b.estHeight; }
-      else { right.push(b); rr += b.estHeight; }
+      if (ll <= rr) {
+        left.push(b);
+        ll += b.estHeight;
+      } else {
+        right.push(b);
+        rr += b.estHeight;
+      }
     }
     pageGroups.push({ left, right });
   }
 
   for (let pageIdx = 0; pageIdx < pageGroups.length; pageIdx++) {
-    const { left, right } = pageGroups[pageIdx]!;
-    const elements: any[] = [
+    const pageGroup = pageGroups[pageIdx];
+    if (!pageGroup) {
+      continue;
+    }
+    const { left, right } = pageGroup;
+    const elements: AddPageElement[] = [
       {
         type: "text" as const,
         top: titleTop,
@@ -1894,7 +2117,13 @@ async function generateGoalLevelsPage(
         fontWeight: "bold" as const,
         ...fontProps(headingFont),
       },
-      createRectangleShape(panelTop, panelMargin, panelWidth, panelHeight, currentCardBgColor),
+      createRectangleShape(
+        panelTop,
+        panelMargin,
+        panelWidth,
+        panelHeight,
+        currentCardBgColor,
+      ),
     ];
 
     const renderCol = (x: number, blocksToRender: Block[]) => {
@@ -1920,21 +2149,33 @@ async function generateGoalLevelsPage(
           let textLeft = x;
 
           if (color1) {
-            elements.push({
-              type: "image",
-              ref: handRefCache.get(color1)!,
-              top: iconTop, left: x, width: iconSize, height: iconSize,
-              altText: { text: `niveaukleur:${color1}`, decorative: true },
-            });
+            const color1Ref = handRefCache.get(color1);
+            if (color1Ref) {
+              elements.push({
+                type: "image",
+                ref: color1Ref,
+                top: iconTop,
+                left: x,
+                width: iconSize,
+                height: iconSize,
+                altText: { text: `niveaukleur:${color1}`, decorative: true },
+              });
+            }
             textLeft = x + 22;
           }
           if (color2) {
-            elements.push({
-              type: "image",
-              ref: handRefCache.get(color2)!,
-              top: iconTop, left: x + 22, width: iconSize, height: iconSize,
-              altText: { text: `niveaukleur:${color2}`, decorative: true },
-            });
+            const color2Ref = handRefCache.get(color2);
+            if (color2Ref) {
+              elements.push({
+                type: "image",
+                ref: color2Ref,
+                top: iconTop,
+                left: x + 22,
+                width: iconSize,
+                height: iconSize,
+                altText: { text: `niveaukleur:${color2}`, decorative: true },
+              });
+            }
             textLeft = x + 44;
           }
           elements.push({
@@ -1955,17 +2196,19 @@ async function generateGoalLevelsPage(
     renderCol(leftColX, left);
     renderCol(rightColX, right);
 
-    const title = pageIdx === 0
-      ? student.name
-      : intl
-        ? intl.formatMessage(
-            {
-              defaultMessage: "{name} (levels {page})",
-              description: "Title for continued development goal levels pages with page number.",
-            },
-            { name: student.name, page: pageIdx + 1 },
-          )
-        : `${student.name} (levels ${pageIdx + 1})`;
+    const title =
+      pageIdx === 0
+        ? student.name
+        : intl
+          ? intl.formatMessage(
+              {
+                defaultMessage: "{name} (levels {page})",
+                description:
+                  "Title for continued development goal levels pages with page number.",
+              },
+              { name: student.name, page: pageIdx + 1 },
+            )
+          : `${student.name} (levels ${pageIdx + 1})`;
     await addPageWithRetry({
       title,
       background,
@@ -1992,10 +2235,12 @@ async function generateGroeigrafiekenPage(
   const colGap = 24;
   const rowGap = 24;
   const cardsPerRow = 2;
-  const cardW = Math.floor((PAGE_W - outerMargin * 2 - colGap * (cardsPerRow - 1)) / cardsPerRow);
+  const cardW = Math.floor(
+    (PAGE_W - outerMargin * 2 - colGap * (cardsPerRow - 1)) / cardsPerRow,
+  );
   const chartPad = 12;
   const chartW = cardW - chartPad * 2;
-  const chartH = Math.round(chartW * 569 / 700);
+  const chartH = Math.round((chartW * 569) / 700);
   const cardPadTop = 12;
   const chartToLabel = 6;
   const labelH = 18;
@@ -2009,31 +2254,40 @@ async function generateGroeigrafiekenPage(
   const rowsPerPage = Math.floor((availH + rowGap) / (cardH + rowGap));
   const cardsPerPage = cardsPerRow * rowsPerPage;
 
-  for (let pageIndex = 0; pageIndex * cardsPerPage < charts.length; pageIndex++) {
-    const pageCharts = charts.slice(pageIndex * cardsPerPage, (pageIndex + 1) * cardsPerPage);
+  for (
+    let pageIndex = 0;
+    pageIndex * cardsPerPage < charts.length;
+    pageIndex++
+  ) {
+    const pageCharts = charts.slice(
+      pageIndex * cardsPerPage,
+      (pageIndex + 1) * cardsPerPage,
+    );
     const background = await createPageBackground(selectedBackground);
-    const pageTitle = pageIndex === 0
-      ? intl
-        ? intl.formatMessage(
-            {
-              defaultMessage: "Growth charts of {name}",
-              description: "Page title for the student growth charts page.",
-            },
-            { name: student.name },
-          )
-        : `Growth charts of ${student.name}`
-      : intl
-        ? intl.formatMessage(
-            {
-              defaultMessage: "Growth charts of {name} (continued)",
-              description: "Page title for continuation pages of student growth charts.",
-            },
-            { name: student.name },
-          )
-        : `Growth charts of ${student.name} (continued)`;
+    const pageTitle =
+      pageIndex === 0
+        ? intl
+          ? intl.formatMessage(
+              {
+                defaultMessage: "Growth charts of {name}",
+                description: "Page title for the student growth charts page.",
+              },
+              { name: student.name },
+            )
+          : `Growth charts of ${student.name}`
+        : intl
+          ? intl.formatMessage(
+              {
+                defaultMessage: "Growth charts of {name} (continued)",
+                description:
+                  "Page title for continuation pages of student growth charts.",
+              },
+              { name: student.name },
+            )
+          : `Growth charts of ${student.name} (continued)`;
 
     const contentWidth = PAGE_W - outerMargin * 2;
-    const elements: any[] = [
+    const elements: AddPageElement[] = [
       {
         type: "text" as const,
         top: 36,
@@ -2049,9 +2303,29 @@ async function generateGroeigrafiekenPage(
     if (topText.trim()) {
       const boxTop = 62;
       elements.push(
-        createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
-        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, currentCardBgColor),
-        { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [topText], fontSize: 13, ...fontProps(bodyFont) },
+        createRectangleShape(
+          boxTop + 3,
+          outerMargin + 3,
+          contentWidth,
+          textBoxH,
+          "#cccccc",
+        ),
+        createRectangleShape(
+          boxTop,
+          outerMargin,
+          contentWidth,
+          textBoxH,
+          currentCardBgColor,
+        ),
+        {
+          type: "text" as const,
+          top: boxTop + textBoxPadV,
+          left: outerMargin + textBoxPadH,
+          width: contentWidth - textBoxPadH * 2,
+          children: [topText],
+          fontSize: 13,
+          ...fontProps(bodyFont),
+        },
       );
     }
 
@@ -2072,8 +2346,20 @@ async function generateGroeigrafiekenPage(
       }).then((asset) => asset.ref);
 
       elements.push(
-        createRectangleShape(cardTop + 4, cardLeft + 4, cardW, cardH, "#cccccc"),
-        createRectangleShape(cardTop, cardLeft, cardW, cardH, currentCardBgColor),
+        createRectangleShape(
+          cardTop + 4,
+          cardLeft + 4,
+          cardW,
+          cardH,
+          "#cccccc",
+        ),
+        createRectangleShape(
+          cardTop,
+          cardLeft,
+          cardW,
+          cardH,
+          currentCardBgColor,
+        ),
         {
           type: "image",
           ref: chartRef,
@@ -2081,6 +2367,10 @@ async function generateGroeigrafiekenPage(
           left: cardLeft + chartPad,
           width: chartW,
           height: chartH,
+          altText: {
+            text: `growth_chart:${chart.leerlijn}`,
+            decorative: false,
+          },
         },
         {
           type: "text" as const,
@@ -2097,17 +2387,41 @@ async function generateGroeigrafiekenPage(
 
     if (bottomText.trim()) {
       const numRows = Math.ceil(pageCharts.length / cardsPerRow);
-      const lastCardBottom = cardsStartTop + numRows * cardH + (numRows - 1) * rowGap;
+      const lastCardBottom =
+        cardsStartTop + numRows * cardH + (numRows - 1) * rowGap;
       const boxTop = lastCardBottom + 16;
       elements.push(
-        createRectangleShape(boxTop + 3, outerMargin + 3, contentWidth, textBoxH, "#cccccc"),
-        createRectangleShape(boxTop, outerMargin, contentWidth, textBoxH, currentCardBgColor),
-        { type: "text" as const, top: boxTop + textBoxPadV, left: outerMargin + textBoxPadH, width: contentWidth - textBoxPadH * 2, children: [bottomText], fontSize: 13, ...fontProps(bodyFont) },
+        createRectangleShape(
+          boxTop + 3,
+          outerMargin + 3,
+          contentWidth,
+          textBoxH,
+          "#cccccc",
+        ),
+        createRectangleShape(
+          boxTop,
+          outerMargin,
+          contentWidth,
+          textBoxH,
+          currentCardBgColor,
+        ),
+        {
+          type: "text" as const,
+          top: boxTop + textBoxPadV,
+          left: outerMargin + textBoxPadH,
+          width: contentWidth - textBoxPadH * 2,
+          children: [bottomText],
+          fontSize: 13,
+          ...fontProps(bodyFont),
+        },
       );
     }
 
     await addPageWithRetry({
-      title: pageIndex === 0 ? student.name : `${student.name} (charts ${pageIndex + 1})`,
+      title:
+        pageIndex === 0
+          ? student.name
+          : `${student.name} (charts ${pageIndex + 1})`,
       background,
       elements: [...elements, ...buildPageFooterElements(student.name, intl)],
     });
@@ -2195,11 +2509,18 @@ async function generateRapport(
 
   const logoBoxWidth = 160;
   const logoBoxHeight = 80;
-  const logoRatio = logoAspectRatio && logoAspectRatio > 0 ? logoAspectRatio : 2;
-  const fittedLogoWidth = Math.round(Math.min(logoBoxWidth, logoBoxHeight * logoRatio));
+  const logoRatio =
+    logoAspectRatio && logoAspectRatio > 0 ? logoAspectRatio : 2;
+  const fittedLogoWidth = Math.round(
+    Math.min(logoBoxWidth, logoBoxHeight * logoRatio),
+  );
   const fittedLogoHeight = Math.round(fittedLogoWidth / logoRatio);
-  const logoLeft = Math.round(infoCardLeft + infoCardWidth - 50 - fittedLogoWidth / 2);
-  const logoTop = Math.round(infoCardTop + (infoCardHeight - fittedLogoHeight) / 2);
+  const logoLeft = Math.round(
+    infoCardLeft + infoCardWidth - 50 - fittedLogoWidth / 2,
+  );
+  const logoTop = Math.round(
+    infoCardTop + (infoCardHeight - fittedLogoHeight) / 2,
+  );
 
   const pageElements = [
     {
@@ -2213,7 +2534,13 @@ async function generateRapport(
       textAlign: "center" as const,
       ...fontProps(headingFont),
     },
-    createRectangleShape(infoCardTop, infoCardLeft, infoCardWidth, infoCardHeight, currentCardBgColor),
+    createRectangleShape(
+      infoCardTop,
+      infoCardLeft,
+      infoCardWidth,
+      infoCardHeight,
+      currentCardBgColor,
+    ),
     {
       type: "image" as const,
       ref,
@@ -2221,7 +2548,10 @@ async function generateRapport(
       left: infoCardLeft + 20,
       width: photoSize,
       height: photoSize,
-      altText: { text: getStudentPhotoAltText(student), decorative: false as const },
+      altText: {
+        text: getStudentPhotoAltText(student),
+        decorative: false as const,
+      },
     },
     {
       type: "text" as const,
@@ -2241,7 +2571,8 @@ async function generateRapport(
           ? intl.formatMessage(
               {
                 defaultMessage: "Date of birth: {birthDate}",
-                description: "Label for student date of birth on the generated report cover page.",
+                description:
+                  "Label for student date of birth on the generated report cover page.",
               },
               { birthDate: student.birthDate },
             )
@@ -2259,7 +2590,8 @@ async function generateRapport(
           ? intl.formatMessage(
               {
                 defaultMessage: "Teacher: {teacherName}",
-                description: "Label for teacher name on the generated report cover page.",
+                description:
+                  "Label for teacher name on the generated report cover page.",
               },
               { teacherName: teacherName || "-" },
             )
@@ -2280,7 +2612,8 @@ async function generateRapport(
               text: intl
                 ? intl.formatMessage({
                     defaultMessage: "School logo",
-                    description: "Decorative alt text label for the school logo on the report cover page.",
+                    description:
+                      "Decorative alt text label for the school logo on the report cover page.",
                   })
                 : "School logo",
               decorative: true as const,
@@ -2306,11 +2639,20 @@ async function generateRapport(
     ...buildPageFooterElements(student.name, intl),
   ];
 
-  console.log("[generateRapport] addPage met", pageElements.length, "elementen");
-  console.log("[generateRapport] elementen:", JSON.stringify(pageElements.map(el => ({
-    ...el,
-    ref: (el as any).ref ? "[ref]" : undefined,
-  }))));
+  console.log(
+    "[generateRapport] addPage met",
+    pageElements.length,
+    "elementen",
+  );
+  console.log(
+    "[generateRapport] elementen:",
+    JSON.stringify(
+      pageElements.map((el) => ({
+        ...el,
+        ref: hasRefField(el) ? "[ref]" : undefined,
+      })),
+    ),
+  );
 
   await addPageWithRetry({
     title: student.name,
@@ -2436,7 +2778,13 @@ async function generateGroei(
 }
 
 // Helper: wacht een aantal ms
-const THROTTLE_MS = 500;
+const THROTTLE_MS = 1200;
+const MIN_ADD_PAGE_INTERVAL_MS = 1800;
+const MAX_ADD_PAGE_INTERVAL_MS = 15000;
+
+// During generation we pin dimensions so all created pages use the same format.
+let currentGenerationPageDimensions: PageDimensions | undefined;
+let addPageIntervalMs = MIN_ADD_PAGE_INTERVAL_MS;
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -2446,28 +2794,76 @@ function delay(ms: number) {
 let lastPageAddedAt = 0;
 
 // Helper: addPage met gegarandeerd minimum interval + retry bij rate limiting
-async function addPageWithRetry(page: Parameters<typeof addPage>[0], maxRetries = 6, baseDelay = 1200) {
+async function addPageWithRetry(
+  page: Parameters<typeof addPage>[0],
+  maxRetries = 8,
+  baseDelay = 1500,
+) {
   // Wacht tot het minimum interval verstreken is sinds de vorige pagina
+  const targetInterval = Math.max(THROTTLE_MS, addPageIntervalMs);
   const elapsed = Date.now() - lastPageAddedAt;
-  if (elapsed < THROTTLE_MS) {
-    await delay(THROTTLE_MS - elapsed);
+  if (elapsed < targetInterval) {
+    await delay(targetInterval - elapsed);
   }
 
   let attempt = 0;
   let lastError;
+  let retryWithPinnedDimensions = false;
   while (attempt <= maxRetries) {
     try {
-      const result = await addPage(page);
+      const pageToAdd: AddPageInput = {
+        ...page,
+        ...(retryWithPinnedDimensions
+          ? { dimensions: currentGenerationPageDimensions }
+          : {}),
+      };
+      const result = await addPage(pageToAdd);
       lastPageAddedAt = Date.now();
+      addPageIntervalMs = Math.max(
+        MIN_ADD_PAGE_INTERVAL_MS,
+        Math.floor(addPageIntervalMs * 0.9),
+      );
       return result;
-    } catch (e: any) {
-      const errorCode = e instanceof CanvaError ? e.code : e?.code;
+    } catch (e: unknown) {
+      const errorCode =
+        e instanceof CanvaError
+          ? e.code
+          : typeof e === "object" && e != null && "code" in e
+            ? (e as { code?: string }).code
+            : undefined;
+      const errorMessage = e instanceof Error ? e.message.toLowerCase() : "";
+      const isQuotaExceeded = errorCode === "quota_exceeded";
       const isRateLimited =
         errorCode === "rate_limited" ||
-        (typeof e?.message === "string" && e.message.includes("rate_limited"));
+        errorCode === "rate_limit_exceeded" ||
+        errorCode === "too_many_requests" ||
+        errorMessage.includes("rate_limited") ||
+        errorMessage.includes("rate limit") ||
+        errorMessage.includes("too many requests") ||
+        errorMessage.includes("429") ||
+        (isQuotaExceeded && errorMessage.includes("adding page"));
+
+      if (
+        isQuotaExceeded &&
+        !retryWithPinnedDimensions &&
+        !page?.dimensions &&
+        currentGenerationPageDimensions
+      ) {
+        retryWithPinnedDimensions = true;
+        lastError = e;
+        continue;
+      }
 
       if (isRateLimited && attempt < maxRetries) {
-        const wait = baseDelay * Math.pow(2, attempt);
+        addPageIntervalMs = Math.min(
+          MAX_ADD_PAGE_INTERVAL_MS,
+          Math.floor(addPageIntervalMs * 1.4) + 500,
+        );
+        const wait =
+          Math.min(
+            baseDelay * Math.pow(2, attempt) + addPageIntervalMs,
+            30000,
+          ) + Math.floor(Math.random() * 350);
         await delay(wait);
         attempt++;
         lastError = e;
@@ -2495,7 +2891,12 @@ async function generatePageForStudent(
   headingFont: SelectedFont | null = null,
   bodyFont: SelectedFont | null = null,
   intl?: IntlShape,
-  extraTexts: PageExtraTexts = { coloredLevelHandsTopText: "", coloredLevelHandsBottomText: "", studentGraphsTopText: "", studentGraphsBottomText: "" },
+  extraTexts: PageExtraTexts = {
+    coloredLevelHandsTopText: "",
+    coloredLevelHandsBottomText: "",
+    studentGraphsTopText: "",
+    studentGraphsBottomText: "",
+  },
 ): Promise<ImageRef[]> {
   const mappedRefs: ImageRef[] = [];
   let ref: ImageRef | undefined;
@@ -2558,22 +2959,54 @@ async function generatePageForStudent(
     }
 
     if (reportContentOptions.coloredLevelHands) {
-      await generateColoredLevelHandsPage(student, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.coloredLevelHandsTopText, extraTexts.coloredLevelHandsBottomText, intl);
+      await generateColoredLevelHandsPage(
+        student,
+        dateRange,
+        selectedBackground,
+        headingFont,
+        bodyFont,
+        extraTexts.coloredLevelHandsTopText,
+        extraTexts.coloredLevelHandsBottomText,
+        intl,
+      );
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.goalDescriptions) {
-      await generateGoalDescriptionsPage(student, dateRange, selectedBackground, headingFont, bodyFont, intl);
+      await generateGoalDescriptionsPage(
+        student,
+        dateRange,
+        selectedBackground,
+        headingFont,
+        bodyFont,
+        intl,
+      );
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.goalLevels) {
-      await generateGoalLevelsPage(student, dateRange, selectedBackground, headingFont, bodyFont, intl);
+      await generateGoalLevelsPage(
+        student,
+        dateRange,
+        selectedBackground,
+        headingFont,
+        bodyFont,
+        intl,
+      );
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.studentGraphs) {
-      await generateGroeigrafiekenPage(student, dateRange, selectedBackground, headingFont, bodyFont, extraTexts.studentGraphsTopText, extraTexts.studentGraphsBottomText, intl);
+      await generateGroeigrafiekenPage(
+        student,
+        dateRange,
+        selectedBackground,
+        headingFont,
+        bodyFont,
+        extraTexts.studentGraphsTopText,
+        extraTexts.studentGraphsBottomText,
+        intl,
+      );
       await delay(THROTTLE_MS);
     }
   }
@@ -2581,14 +3014,26 @@ async function generatePageForStudent(
   if (templateId === "portfolio") {
     ref = await uploadPhoto(student.photoUrl);
     mappedRefs.push(ref);
-    await generatePortfolio(student, ref, selectedBackground, headingFont, bodyFont);
+    await generatePortfolio(
+      student,
+      ref,
+      selectedBackground,
+      headingFont,
+      bodyFont,
+    );
     await delay(THROTTLE_MS);
   }
 
   if (templateId === "groei") {
     ref = await uploadPhoto(student.photoUrl);
     mappedRefs.push(ref);
-    await generateGroei(student, ref, selectedBackground, headingFont, bodyFont);
+    await generateGroei(
+      student,
+      ref,
+      selectedBackground,
+      headingFont,
+      bodyFont,
+    );
     await delay(THROTTLE_MS);
   }
 
@@ -2654,7 +3099,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Teacher name"
             description="Label for the teacher name input field in the Settings screen"
           />
@@ -2663,9 +3107,9 @@ function SettingsScreen({
           value={teacherName}
           onChange={onTeacherNameChange}
           placeholder={intl.formatMessage({
-            
             defaultMessage: "E.g. Ms. Jansen",
-            description: "Placeholder for the teacher name input, showing an example name",
+            description:
+              "Placeholder for the teacher name input, showing an example name",
           })}
         />
       </Rows>
@@ -2673,7 +3117,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Report title"
             description="Label for the report title input field"
           />
@@ -2682,9 +3125,9 @@ function SettingsScreen({
           value={reportTitle}
           onChange={onReportTitleChange}
           placeholder={intl.formatMessage({
-            
             defaultMessage: "Look what I can already do!",
-            description: "Default report title shown as placeholder and fallback",
+            description:
+              "Default report title shown as placeholder and fallback",
           })}
         />
       </Rows>
@@ -2692,7 +3135,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Text below report"
             description="Label for the footer text field that appears below the report"
           />
@@ -2701,8 +3143,8 @@ function SettingsScreen({
           value={reportFooter}
           onChange={onReportFooterChange}
           placeholder={intl.formatMessage({
-            
-            defaultMessage: "Text that appears at the bottom of the 1st page in a white box (optional)",
+            defaultMessage:
+              "Text that appears at the bottom of the 1st page in a white box (optional)",
             description: "Placeholder for the report footer text input",
           })}
           minRows={3}
@@ -2712,7 +3154,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Set background"
             description="Label for the background picker section in Settings"
           />
@@ -2721,21 +3162,19 @@ function SettingsScreen({
           {selectedBackground
             ? intl.formatMessage(
                 {
-                  
                   defaultMessage: "Selected: {name}",
-                  description: "Shows the name of the currently selected background",
+                  description:
+                    "Shows the name of the currently selected background",
                 },
                 { name: selectedBackground.name },
               )
             : intl.formatMessage({
-                
                 defaultMessage: "No background selected yet.",
                 description: "Shown when no background has been chosen",
               })}
         </Text>
         <Button variant="secondary" onClick={onOpenBackgroundPicker} stretch>
           {intl.formatMessage({
-            
             defaultMessage: "Set background",
             description: "Button to open the background picker",
           })}
@@ -2745,7 +3184,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Choose tapes"
             description="Label for the tape picker section in Settings"
           />
@@ -2754,21 +3192,19 @@ function SettingsScreen({
           {selectedTapes.length > 0
             ? intl.formatMessage(
                 {
-                  
                   defaultMessage: "{count} of 10 selected",
-                  description: "Shows how many tapes are currently selected out of the maximum of 10",
+                  description:
+                    "Shows how many tapes are currently selected out of the maximum of 10",
                 },
                 { count: selectedTapes.length },
               )
             : intl.formatMessage({
-                
                 defaultMessage: "No tapes selected yet.",
                 description: "Shown when no tapes have been chosen",
               })}
         </Text>
         <Button variant="secondary" onClick={onOpenTapePicker} stretch>
           {intl.formatMessage({
-            
             defaultMessage: "Choose tapes",
             description: "Button to open the tape picker",
           })}
@@ -2778,7 +3214,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Font for headings"
             description="Label for the heading font picker in Settings"
           />
@@ -2797,17 +3232,17 @@ function SettingsScreen({
           {headingFont
             ? headingFont.name
             : intl.formatMessage({
-                
                 defaultMessage: "Default (click to choose)",
-                description: "Button label when no custom font has been selected yet",
+                description:
+                  "Button label when no custom font has been selected yet",
               })}
         </Button>
         {headingFont && (
           <Button variant="secondary" onClick={() => onHeadingFontChange(null)}>
             {intl.formatMessage({
-              
               defaultMessage: "Clear",
-              description: "Button to remove the currently selected font and revert to default",
+              description:
+                "Button to remove the currently selected font and revert to default",
             })}
           </Button>
         )}
@@ -2816,7 +3251,6 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Font for body text"
             description="Label for the body text font picker in Settings"
           />
@@ -2835,17 +3269,17 @@ function SettingsScreen({
           {bodyFont
             ? bodyFont.name
             : intl.formatMessage({
-                
                 defaultMessage: "Default (click to choose)",
-                description: "Button label when no custom font has been selected yet",
+                description:
+                  "Button label when no custom font has been selected yet",
               })}
         </Button>
         {bodyFont && (
           <Button variant="secondary" onClick={() => onBodyFontChange(null)}>
             {intl.formatMessage({
-              
               defaultMessage: "Clear",
-              description: "Button to remove the currently selected font and revert to default",
+              description:
+                "Button to remove the currently selected font and revert to default",
             })}
           </Button>
         )}
@@ -2854,14 +3288,12 @@ function SettingsScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Card background color"
             description="Label for the card background color picker in Settings"
           />
         </Text>
         <Text tone="tertiary">
           <FormattedMessage
-            
             defaultMessage="Color of the cards and text blocks on generated pages. (default: white)"
             description="Description for the card background color setting"
           />
@@ -2870,14 +3302,20 @@ function SettingsScreen({
         <Text tone="tertiary">
           {intl.formatMessage(
             {
-              
               defaultMessage: "Opacity: {value}%",
-              description: "Shows the current opacity percentage for the card background color",
+              description:
+                "Shows the current opacity percentage for the card background color",
             },
             { value: cardBgAlpha },
           )}
         </Text>
-        <Slider min={0} max={100} step={1} value={cardBgAlpha} onChange={onCardBgAlphaChange} />
+        <Slider
+          min={0}
+          max={100}
+          step={1}
+          value={cardBgAlpha}
+          onChange={onCardBgAlphaChange}
+        />
       </Rows>
 
       {/* Connection code and disconnect have been moved to the Support tab */}
@@ -2888,11 +3326,18 @@ function SettingsScreen({
 // 2. Genereren
 type GenerateScreenProps = {
   isAuthenticated: boolean;
-  onGenerate: (students: Student[], template: "rapport", extraTexts: PageExtraTexts) => void;
+  onGenerate: (
+    students: Student[],
+    template: "rapport",
+    extraTexts: PageExtraTexts,
+  ) => void;
   generationError?: string;
   licenseValidUntil: number | null;
   reportContentOptions: ReportContentOptions;
-  onReportContentOptionChange: (key: keyof ReportContentOptions, value: boolean) => void;
+  onReportContentOptionChange: (
+    key: keyof ReportContentOptions,
+    value: boolean,
+  ) => void;
   canAddPage: boolean;
   reportDateRange: ReportDateRange;
   onReportDateRangeChange: (next: ReportDateRange) => void;
@@ -2931,13 +3376,16 @@ function GenerateScreen({
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupStudents, setGroupStudents] = useState<Student[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
-  const [selectionMode, setSelectionMode] = useState<"group" | "student">("student");
+  const [selectionMode, setSelectionMode] = useState<"group" | "student">(
+    "student",
+  );
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [coloredLevelHandsTopText, setColoredLevelHandsTopText] = useState("");
-  const [coloredLevelHandsBottomText, setColoredLevelHandsBottomText] = useState("");
+  const [coloredLevelHandsBottomText, setColoredLevelHandsBottomText] =
+    useState("");
   const [studentGraphsTopText, setStudentGraphsTopText] = useState("");
   const [studentGraphsBottomText, setStudentGraphsBottomText] = useState("");
 
@@ -2988,10 +3436,10 @@ function GenerateScreen({
         const detail = err instanceof Error ? err.message : String(err);
         setLoadError(
           intl.formatMessage({
-            
             defaultMessage: "Could not retrieve data. Check your connection.",
-            description: "Error shown when the app fails to load groups and students",
-          }) + (detail ? ` (${detail})` : "")
+            description:
+              "Error shown when the app fails to load groups and students",
+          }) + (detail ? ` (${detail})` : ""),
         );
       } finally {
         setLoading(false);
@@ -3017,11 +3465,14 @@ function GenerateScreen({
       } catch {
         if (!cancelled) {
           setGroupStudents([]);
-          setLoadError(intl.formatMessage({
-            
-            defaultMessage: "Something went wrong while loading the students. Please try again later.",
-            description: "Error shown when loading students for a selected class fails",
-          }));
+          setLoadError(
+            intl.formatMessage({
+              defaultMessage:
+                "Something went wrong while loading the students. Please try again later.",
+              description:
+                "Error shown when loading students for a selected class fails",
+            }),
+          );
         }
       }
     };
@@ -3033,14 +3484,18 @@ function GenerateScreen({
     };
   }, [isAuthenticated, selectedGroup]);
 
-  const selectedStudent = allStudents.find((student) => student.id === selectedStudentId);
+  const selectedStudent = allStudents.find(
+    (student) => student.id === selectedStudentId,
+  );
   const studentsToGenerate =
     selectionMode === "student"
       ? selectedStudent
         ? [selectedStudent]
         : []
       : groupStudents;
-  const licenseExpired = licenseValidUntil != null && licenseValidUntil < Math.floor(Date.now() / 1000);
+  const licenseExpired =
+    licenseValidUntil != null &&
+    licenseValidUntil < Math.floor(Date.now() / 1000);
 
   if (loading) return <LoadingIndicator />;
   if (!isAuthenticated) {
@@ -3048,14 +3503,12 @@ function GenerateScreen({
       <Rows spacing="2u">
         <Text variant="bold" size="large">
           <FormattedMessage
-            
             defaultMessage="Generate"
             description="Title of the Generate tab"
           />
         </Text>
         <Text tone="tertiary">
           <FormattedMessage
-            
             defaultMessage="First connect your account in the Customize tab to generate pages."
             description="Message shown when the user has not connected their account yet"
           />
@@ -3064,20 +3517,19 @@ function GenerateScreen({
     );
   }
 
-  if (loadError) return (
-    <Rows spacing="2u">
-      <Text tone="critical">{loadError}</Text>
-    </Rows>
-  );
+  if (loadError)
+    return (
+      <Rows spacing="2u">
+        <Text tone="critical">{loadError}</Text>
+      </Rows>
+    );
 
   return (
     <Rows spacing="3u">
-
       {/* Step 1 — Group/student selection */}
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="① Choose what you want to generate"
             description="Heading for step 1 of the generate flow"
           />
@@ -3089,25 +3541,24 @@ function GenerateScreen({
             {
               value: "student",
               label: intl.formatMessage({
-                
                 defaultMessage: "An individual student",
-                description: "Radio option to generate a report for one student",
+                description:
+                  "Radio option to generate a report for one student",
               }),
               description: intl.formatMessage({
-                
                 defaultMessage: "Generate 1 individual report",
-                description: "Description for the 'individual student' radio option",
+                description:
+                  "Description for the 'individual student' radio option",
               }),
             },
             {
               value: "group",
               label: intl.formatMessage({
-                
                 defaultMessage: "An entire class",
-                description: "Radio option to generate reports for a whole class",
+                description:
+                  "Radio option to generate reports for a whole class",
               }),
               description: intl.formatMessage({
-                
                 defaultMessage: "Generate for all students in 1 class",
                 description: "Description for the 'entire class' radio option",
               }),
@@ -3119,7 +3570,6 @@ function GenerateScreen({
           <>
             <Text variant="bold">
               <FormattedMessage
-                
                 defaultMessage="Choose a class"
                 description="Label above the class selection radio group"
               />
@@ -3127,7 +3577,6 @@ function GenerateScreen({
             {groups.length === 0 ? (
               <Alert tone="info">
                 <FormattedMessage
-                  
                   defaultMessage="No classes found. Make sure your account is linked and that there are classes available in MijnKleutergroep."
                   description="Alert shown when no groups/classes are found after loading"
                 />
@@ -3141,7 +3590,6 @@ function GenerateScreen({
                   label: g.name,
                   description: intl.formatMessage(
                     {
-                      
                       defaultMessage: "{count} students",
                       description: "Shows the number of students in a class",
                     },
@@ -3155,7 +3603,6 @@ function GenerateScreen({
           <>
             <Text variant="bold">
               <FormattedMessage
-                
                 defaultMessage="Choose a student"
                 description="Label above the student selection radio group"
               />
@@ -3163,7 +3610,6 @@ function GenerateScreen({
             {allStudents.length === 0 ? (
               <Alert tone="info">
                 <FormattedMessage
-                  
                   defaultMessage="No students found. Make sure your account is linked and that there are students available in MijnKleutergroep."
                   description="Alert shown when no students are found after loading"
                 />
@@ -3187,14 +3633,12 @@ function GenerateScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="② From and to date"
             description="Heading for step 2 of the generate flow"
           />
         </Text>
         <Text tone="tertiary">
           <FormattedMessage
-            
             defaultMessage="These dates are used to calculate the achieved levels."
             description="Explanation of why the date range is needed"
           />
@@ -3203,7 +3647,6 @@ function GenerateScreen({
           <label style={{ display: "grid", gap: 6 }}>
             <Text variant="bold">
               <FormattedMessage
-                
                 defaultMessage="From date"
                 description="Label for the start date input"
               />
@@ -3220,7 +3663,6 @@ function GenerateScreen({
                 })
               }
               ariaLabel={intl.formatMessage({
-                
                 defaultMessage: "From date",
                 description: "Label for the start date input",
               })}
@@ -3229,7 +3671,6 @@ function GenerateScreen({
           <label style={{ display: "grid", gap: 6 }}>
             <Text variant="bold">
               <FormattedMessage
-                
                 defaultMessage="To date"
                 description="Label for the end date input"
               />
@@ -3246,7 +3687,6 @@ function GenerateScreen({
                 })
               }
               ariaLabel={intl.formatMessage({
-                
                 defaultMessage: "To date",
                 description: "Label for the end date input",
               })}
@@ -3258,151 +3698,147 @@ function GenerateScreen({
       {/* Step 3 — Report content */}
       <Rows spacing="1u">
         <Box paddingTop="2u">
-        <Rows spacing="1u">
-          <Text variant="bold">
-            <FormattedMessage
-              
-              defaultMessage="Report content per student"
-              description="Heading above the checkboxes for selecting which pages to include in the report"
+          <Rows spacing="1u">
+            <Text variant="bold">
+              <FormattedMessage
+                defaultMessage="Report content per student"
+                description="Heading above the checkboxes for selecting which pages to include in the report"
+              />
+            </Text>
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Cover page (photo page)",
+                description: "Checkbox label for the cover/photo page option",
+              })}
+              checked={reportContentOptions.photoPage}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("photoPage", checked)
+              }
             />
-          </Text>
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Cover page (photo page)",
-              description: "Checkbox label for the cover/photo page option",
-            })}
-            checked={reportContentOptions.photoPage}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("photoPage", checked)
-            }
-          />
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Extra page with 6 photos",
-              description: "Checkbox label for the extra photos page option",
-            })}
-            checked={reportContentOptions.extraPhotosPage}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("extraPhotosPage", checked)
-            }
-          />
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Extra page with 6 text boxes",
-              description: "Checkbox label for the extra text boxes page option",
-            })}
-            checked={reportContentOptions.extraTextBoxesPage}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("extraTextBoxesPage", checked)
-            }
-          />
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Colored level hands",
-              description: "Checkbox label for the colored level hands page option",
-            })}
-            checked={reportContentOptions.coloredLevelHands}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("coloredLevelHands", checked)
-            }
-          />
-          {reportContentOptions.coloredLevelHands && (
-            <Box paddingStart="2u">
-              <Rows spacing="1u">
-                <MultilineInput
-                  value={coloredLevelHandsTopText}
-                  onChange={setColoredLevelHandsTopText}
-                  placeholder={intl.formatMessage({
-                    
-                    defaultMessage: "Text above the page (optional)",
-                    description: "Placeholder for optional text shown above the level hands page",
-                  })}
-                />
-                <MultilineInput
-                  value={coloredLevelHandsBottomText}
-                  onChange={setColoredLevelHandsBottomText}
-                  placeholder={intl.formatMessage({
-                    
-                    defaultMessage: "Text below the page (optional)",
-                    description: "Placeholder for optional text shown below the level hands page",
-                  })}
-                />
-              </Rows>
-            </Box>
-          )}
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Student graphs",
-              description: "Checkbox label for the student growth graphs page option",
-            })}
-            checked={reportContentOptions.studentGraphs}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("studentGraphs", checked)
-            }
-          />
-          {reportContentOptions.studentGraphs && (
-            <Box paddingStart="2u">
-              <Rows spacing="1u">
-                <MultilineInput
-                  value={studentGraphsTopText}
-                  onChange={setStudentGraphsTopText}
-                  placeholder={intl.formatMessage({
-                    
-                    defaultMessage: "Text above the page (optional)",
-                    description: "Placeholder for optional text shown above the level hands page",
-                  })}
-                />
-                <MultilineInput
-                  value={studentGraphsBottomText}
-                  onChange={setStudentGraphsBottomText}
-                  placeholder={intl.formatMessage({
-                    
-                    defaultMessage: "Text below the page (optional)",
-                    description: "Placeholder for optional text shown below the level hands page",
-                  })}
-                />
-              </Rows>
-            </Box>
-          )}
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Self-drawing",
-              description: "Checkbox label for the self-drawing page option",
-            })}
-            checked={reportContentOptions.selfDrawing}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("selfDrawing", checked)
-            }
-          />
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Goal level with description",
-              description: "Checkbox label for the goal level with description page option",
-            })}
-            checked={reportContentOptions.goalDescriptions}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("goalDescriptions", checked)
-            }
-          />
-          <Checkbox
-            label={intl.formatMessage({
-              
-              defaultMessage: "Development goals with levels",
-              description: "Checkbox label for the development goals with levels page option",
-            })}
-            checked={reportContentOptions.goalLevels}
-            onChange={(_, checked) =>
-              onReportContentOptionChange("goalLevels", checked)
-            }
-          />
-        </Rows>
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Extra page with 6 photos",
+                description: "Checkbox label for the extra photos page option",
+              })}
+              checked={reportContentOptions.extraPhotosPage}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("extraPhotosPage", checked)
+              }
+            />
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Extra page with 6 text boxes",
+                description:
+                  "Checkbox label for the extra text boxes page option",
+              })}
+              checked={reportContentOptions.extraTextBoxesPage}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("extraTextBoxesPage", checked)
+              }
+            />
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Colored level hands",
+                description:
+                  "Checkbox label for the colored level hands page option",
+              })}
+              checked={reportContentOptions.coloredLevelHands}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("coloredLevelHands", checked)
+              }
+            />
+            {reportContentOptions.coloredLevelHands && (
+              <Box paddingStart="2u">
+                <Rows spacing="1u">
+                  <MultilineInput
+                    value={coloredLevelHandsTopText}
+                    onChange={setColoredLevelHandsTopText}
+                    placeholder={intl.formatMessage({
+                      defaultMessage: "Text above the page (optional)",
+                      description:
+                        "Placeholder for optional text shown above the level hands page",
+                    })}
+                  />
+                  <MultilineInput
+                    value={coloredLevelHandsBottomText}
+                    onChange={setColoredLevelHandsBottomText}
+                    placeholder={intl.formatMessage({
+                      defaultMessage: "Text below the page (optional)",
+                      description:
+                        "Placeholder for optional text shown below the level hands page",
+                    })}
+                  />
+                </Rows>
+              </Box>
+            )}
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Student graphs",
+                description:
+                  "Checkbox label for the student growth graphs page option",
+              })}
+              checked={reportContentOptions.studentGraphs}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("studentGraphs", checked)
+              }
+            />
+            {reportContentOptions.studentGraphs && (
+              <Box paddingStart="2u">
+                <Rows spacing="1u">
+                  <MultilineInput
+                    value={studentGraphsTopText}
+                    onChange={setStudentGraphsTopText}
+                    placeholder={intl.formatMessage({
+                      defaultMessage: "Text above the page (optional)",
+                      description:
+                        "Placeholder for optional text shown above the level hands page",
+                    })}
+                  />
+                  <MultilineInput
+                    value={studentGraphsBottomText}
+                    onChange={setStudentGraphsBottomText}
+                    placeholder={intl.formatMessage({
+                      defaultMessage: "Text below the page (optional)",
+                      description:
+                        "Placeholder for optional text shown below the level hands page",
+                    })}
+                  />
+                </Rows>
+              </Box>
+            )}
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Self-drawing",
+                description: "Checkbox label for the self-drawing page option",
+              })}
+              checked={reportContentOptions.selfDrawing}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("selfDrawing", checked)
+              }
+            />
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Goal level with description",
+                description:
+                  "Checkbox label for the goal level with description page option",
+              })}
+              checked={reportContentOptions.goalDescriptions}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("goalDescriptions", checked)
+              }
+            />
+            <Checkbox
+              label={intl.formatMessage({
+                defaultMessage: "Development goals with levels",
+                description:
+                  "Checkbox label for the development goals with levels page option",
+              })}
+              checked={reportContentOptions.goalLevels}
+              onChange={(_, checked) =>
+                onReportContentOptionChange("goalLevels", checked)
+              }
+            />
+          </Rows>
         </Box>
       </Rows>
 
@@ -3410,7 +3846,6 @@ function GenerateScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="③ Generate pages"
             description="Heading for step 4 of the generate flow"
           />
@@ -3419,7 +3854,6 @@ function GenerateScreen({
         {!canAddPage && (
           <Text tone="critical">
             <FormattedMessage
-              
               defaultMessage="This Canva document doesn't support new pages. Open the report in a document type that can add pages."
               description="Error shown when the current Canva document type does not support adding pages"
             />
@@ -3428,7 +3862,6 @@ function GenerateScreen({
         {(!reportDateRange.fromDate || !reportDateRange.toDate) && (
           <Text tone="critical">
             <FormattedMessage
-              
               defaultMessage="First choose a from and to date."
               description="Error shown when the user has not selected a date range yet"
             />
@@ -3437,21 +3870,21 @@ function GenerateScreen({
         {licenseExpired ? (
           <Alert tone="warn">
             {intl.formatMessage({
-              
-              defaultMessage: "Your custom report licence has expired, renew your licence in MijnKleutergroep.",
-              description: "Warning shown instead of the generate button when the user's custom report licence has expired. 'MijnKleutergroep' is a proper name — do not translate.",
+              defaultMessage:
+                "Your custom report licence has expired, renew your licence in MijnKleutergroep.",
+              description:
+                "Warning shown instead of the generate button when the user's custom report licence has expired. 'MijnKleutergroep' is a proper name — do not translate.",
             })}
           </Alert>
         ) : studentsToGenerate.length === 0 ? (
           <Text tone="tertiary">
             {selectionMode === "student"
               ? intl.formatMessage({
-                  
                   defaultMessage: "No student selected.",
-                  description: "Shown when no individual student has been chosen",
+                  description:
+                    "Shown when no individual student has been chosen",
                 })
               : intl.formatMessage({
-                  
                   defaultMessage: "No students found in this class.",
                   description: "Shown when the selected class has no students",
                 })}
@@ -3459,35 +3892,38 @@ function GenerateScreen({
         ) : (
           <Button
             variant="primary"
-            onClick={() => onGenerate(studentsToGenerate, "rapport", {
-              coloredLevelHandsTopText,
-              coloredLevelHandsBottomText,
-              studentGraphsTopText,
-              studentGraphsBottomText,
-            })}
+            onClick={() =>
+              onGenerate(studentsToGenerate, "rapport", {
+                coloredLevelHandsTopText,
+                coloredLevelHandsBottomText,
+                studentGraphsTopText,
+                studentGraphsBottomText,
+              })
+            }
             disabled={
-              !canAddPage || !reportDateRange.fromDate || !reportDateRange.toDate
+              !canAddPage ||
+              !reportDateRange.fromDate ||
+              !reportDateRange.toDate
             }
             stretch
           >
             {selectionMode === "student"
               ? intl.formatMessage({
-                  
                   defaultMessage: "Create 1 report →",
-                  description: "Button to generate a report for the selected individual student",
+                  description:
+                    "Button to generate a report for the selected individual student",
                 })
               : intl.formatMessage(
                   {
-                    
                     defaultMessage: "Create {count} reports →",
-                    description: "Button to generate reports for all students in the selected class",
+                    description:
+                      "Button to generate reports for all students in the selected class",
                   },
                   { count: studentsToGenerate.length },
                 )}
           </Button>
         )}
       </Rows>
-
     </Rows>
   );
 }
@@ -3519,21 +3955,21 @@ function SupportScreen({
     }
   };
 
-  const licenseExpired = licenseValidUntil != null && licenseValidUntil < Math.floor(Date.now() / 1000);
+  const licenseExpired =
+    licenseValidUntil != null &&
+    licenseValidUntil < Math.floor(Date.now() / 1000);
 
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
         <Text variant="bold" size="large">
           <FormattedMessage
-            
             defaultMessage="Information & Support"
             description="Title of the Support tab"
           />
         </Text>
         <Text>
           <FormattedMessage
-            
             defaultMessage="Use this Canva plugin to generate student pages from MijnKleutergroep."
             description="Short description of what this plugin does, shown in the Support tab"
           />
@@ -3543,16 +3979,19 @@ function SupportScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            
             defaultMessage="Connect MijnKleutergroep account"
             description="Heading for the account connection section"
           />
         </Text>
         {!isAuthenticated ? (
           <>
-            <Button variant="primary" onClick={handleLogin} loading={loading} stretch>
+            <Button
+              variant="primary"
+              onClick={handleLogin}
+              loading={loading}
+              stretch
+            >
               {intl.formatMessage({
-                
                 defaultMessage: "Log in with MijnKleutergroep",
                 description: "Button to start the OAuth login flow",
               })}
@@ -3564,7 +4003,6 @@ function SupportScreen({
             <Text tone="tertiary">
               {intl.formatMessage(
                 {
-                  
                   defaultMessage: "Connected as {email}",
                   description: "Text shown when an account is connected",
                 },
@@ -3575,9 +4013,9 @@ function SupportScreen({
               <Alert tone={licenseExpired ? "warn" : "positive"}>
                 {intl.formatMessage(
                   {
-                    
                     defaultMessage: "Licence valid until: {date}",
-                    description: "Shows the license validity date in the Support tab",
+                    description:
+                      "Shows the license validity date in the Support tab",
                   },
                   { date: formatUnixDate(licenseValidUntil) },
                 )}
@@ -3641,9 +4079,9 @@ function GeneratingScreen({
     const run = async () => {
       currentCardBgColor = blendWithWhite(cardBgColor, cardBgAlpha);
       currentPolaroidNoteText = intl.formatMessage({
-        
         defaultMessage: "Click to add a note...",
-        description: "Placeholder text in the note area of each polaroid card on a generated report page.",
+        description:
+          "Placeholder text in the note area of each polaroid card on a generated report page.",
       });
       const failedNames: string[] = [];
 
@@ -3686,11 +4124,15 @@ function GeneratingScreen({
         } catch (e) {
           failedNames.push(student.name);
           setFailed([...failedNames]);
-          const msg = e instanceof Error ? e.message : intl.formatMessage({
-            
-            defaultMessage: "Something went wrong while creating this report. Please try again.",
-            description: "Fallback error message shown when an unexpected error occurs during report generation and no specific error message is available.",
-          });
+          const msg =
+            e instanceof Error
+              ? e.message
+              : intl.formatMessage({
+                  defaultMessage:
+                    "Something went wrong while creating this report. Please try again.",
+                  description:
+                    "Fallback error message shown when an unexpected error occurs during report generation and no specific error message is available.",
+                });
           console.error(`[Generate] Error for ${student.name}:`, e);
           setError(msg);
         }
@@ -3711,7 +4153,9 @@ function GeneratingScreen({
     };
 
     run();
-    return () => { cancelled.current = true; };
+    return () => {
+      cancelled.current = true;
+    };
   }, []);
 
   const pct = Math.round((current / students.length) * 100);
@@ -3721,7 +4165,6 @@ function GeneratingScreen({
     <Rows spacing="3u">
       <Text variant="bold" size="large">
         <FormattedMessage
-          
           defaultMessage="Creating pages…"
           description="Title shown while reports are being generated"
         />
@@ -3730,6 +4173,15 @@ function GeneratingScreen({
       {/* Progress bar */}
       <Rows spacing="1u">
         <div
+          role="progressbar"
+          aria-label={intl.formatMessage({
+            defaultMessage: "Report generation progress",
+            description:
+              "Accessible label for the progress bar while generating report pages.",
+          })}
+          aria-valuemin={0}
+          aria-valuemax={students.length}
+          aria-valuenow={Math.min(current, students.length)}
           style={{
             height: 8,
             borderRadius: 4,
@@ -3767,9 +4219,9 @@ function GeneratingScreen({
           <Text tone="critical">
             {intl.formatMessage(
               {
-                
                 defaultMessage: "Failed for: {names}",
-                description: "Error listing the students whose pages could not be generated",
+                description:
+                  "Error listing the students whose pages could not be generated",
               },
               { names: failed.join(", ") },
             )}
@@ -3782,9 +4234,9 @@ function GeneratingScreen({
           <Text tone="critical">
             {intl.formatMessage(
               {
-                
                 defaultMessage: "Error: {error}",
-                description: "Generic error message shown during page generation",
+                description:
+                  "Generic error message shown during page generation",
               },
               { error },
             )}
@@ -3794,7 +4246,6 @@ function GeneratingScreen({
 
       <Button variant="tertiary" onClick={onCancel} stretch>
         {intl.formatMessage({
-          
           defaultMessage: "Cancel",
           description: "Button to cancel the page generation process",
         })}
@@ -3815,15 +4266,16 @@ function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
       <Alert tone="positive">
         {intl.formatMessage(
           {
-            defaultMessage: "Done! {count} pages have been created in your Canva document. You can now make changes and then print via Share -> Download -> PDF.",
-            description: "Success message shown after generating reports, including completed page count and next steps",
+            defaultMessage:
+              "Done! {count} pages have been created in your Canva document. You can now make changes and then print via Share -> Download -> PDF.",
+            description:
+              "Success message shown after generating reports, including completed page count and next steps",
           },
           { count },
         )}
       </Alert>
       <Button variant="primary" onClick={onBack} stretch>
         {intl.formatMessage({
-          
           defaultMessage: "Generate more reports",
           description: "Button to go back and generate more reports",
         })}
@@ -3844,33 +4296,43 @@ export const App = () => {
   const [connectedEmail, setConnectedEmail] = useState<string>(
     () => localStorage.getItem(CONNECTED_EMAIL_STORAGE_KEY) ?? "",
   );
-  const [licenseValidUntil, setLicenseValidUntil] = useState<number | null>(() => {
-    const stored = localStorage.getItem(LICENCE_VALID_UNTIL_STORAGE_KEY);
-    return stored ? parseInt(stored, 10) : null;
-  });
+  const [licenseValidUntil, setLicenseValidUntil] = useState<number | null>(
+    () => {
+      const stored = localStorage.getItem(LICENCE_VALID_UNTIL_STORAGE_KEY);
+      return stored ? parseInt(stored, 10) : null;
+    },
+  );
   const [appState, setAppState] = useState<AppState>("idle");
   const [activeTab, setActiveTab] = useState<AppTab>("settings");
 
   // Controleer bij opstarten of de gebruiker al is ingelogd
   useEffect(() => {
-    oauthClient.getAccessToken({ scope: OAUTH_SCOPE })
+    oauthClient
+      .getAccessToken({ scope: OAUTH_SCOPE })
       .then(async (token) => {
         if (token) {
           setIsAuthenticated(true);
           setActiveTab("generate");
           try {
-            const info = await apiFetch("VALIDATE") as ValidateResponse;
+            const info = (await apiFetch("VALIDATE")) as ValidateResponse;
             const email = info.email ?? "";
             localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
             setConnectedEmail(email);
             if (typeof info.license_valid_until === "number") {
-              localStorage.setItem(LICENCE_VALID_UNTIL_STORAGE_KEY, String(info.license_valid_until));
+              localStorage.setItem(
+                LICENCE_VALID_UNTIL_STORAGE_KEY,
+                String(info.license_valid_until),
+              );
               setLicenseValidUntil(info.license_valid_until);
             }
-          } catch { /* e-mail ophalen mislukt, niet kritiek */ }
+          } catch {
+            /* e-mail ophalen mislukt, niet kritiek */
+          }
         }
       })
-      .catch(() => {/* niet ingelogd */});
+      .catch(() => {
+        /* niet ingelogd */
+      });
   }, []);
   const [generatePayload, setGeneratePayload] = useState<{
     students: Student[];
@@ -3881,7 +4343,7 @@ export const App = () => {
     getStoredReportDateRange(),
   );
   const [generationError, setGenerationError] = useState<string>("");
-const [selectedBackground, setSelectedBackground] = useState<
+  const [selectedBackground, setSelectedBackground] = useState<
     BackgroundOption | undefined
   >(() => {
     const stored = localStorage.getItem(BACKGROUND_STORAGE_KEY);
@@ -3891,17 +4353,20 @@ const [selectedBackground, setSelectedBackground] = useState<
     () => localStorage.getItem(TEACHER_NAME_STORAGE_KEY) ?? "",
   );
   const [reportTitle, setReportTitle] = useState<string>(
-    () => localStorage.getItem(REPORT_TITLE_STORAGE_KEY) ?? intl.formatMessage({
-      
-      defaultMessage: "Look what I can already do!",
-      description: "Default report title shown as placeholder and fallback",
-    }),
+    () =>
+      localStorage.getItem(REPORT_TITLE_STORAGE_KEY) ??
+      intl.formatMessage({
+        defaultMessage: "Look what I can already do!",
+        description: "Default report title shown as placeholder and fallback",
+      }),
   );
   const [reportFooter, setReportFooter] = useState<string>(
     () => localStorage.getItem(REPORT_FOOTER_STORAGE_KEY) ?? "",
   );
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
-  const [backgroundOptions, setBackgroundOptions] = useState<BackgroundOption[]>([]);
+  const [backgroundOptions, setBackgroundOptions] = useState<
+    BackgroundOption[]
+  >([]);
   const [backgroundsLoading, setBackgroundsLoading] = useState(false);
   const [backgroundsError, setBackgroundsError] = useState("");
   const [isTapeModalOpen, setIsTapeModalOpen] = useState(false);
@@ -3955,14 +4420,16 @@ const [selectedBackground, setSelectedBackground] = useState<
   const [niveauOptionsError, setNiveauOptionsError] = useState("");
   const [selectedNiveauColor, setSelectedNiveauColor] = useState<string>("");
   const [replacingNiveauHand, setReplacingNiveauHand] = useState(false);
-  const [studentSelectionOptions, setStudentSelectionOptions] = useState<Student[]>([]);
+  const [studentSelectionOptions, setStudentSelectionOptions] = useState<
+    Student[]
+  >([]);
   const [studentSelectionLoading, setStudentSelectionLoading] = useState(false);
   const [replacingPhoto, setReplacingPhoto] = useState(false);
   const [cardBgColor, setCardBgColor] = useState<string>(
     () => localStorage.getItem(CARD_BG_COLOR_STORAGE_KEY) ?? "#ffffff",
   );
-  const [cardBgAlpha, setCardBgAlpha] = useState<number>(
-    () => parseInt(localStorage.getItem(CARD_BG_ALPHA_STORAGE_KEY) ?? "100", 10),
+  const [cardBgAlpha, setCardBgAlpha] = useState<number>(() =>
+    parseInt(localStorage.getItem(CARD_BG_ALPHA_STORAGE_KEY) ?? "100", 10),
   );
   const handleCardBgColorChange = (color: string) => {
     setCardBgColor(color);
@@ -3973,7 +4440,9 @@ const [selectedBackground, setSelectedBackground] = useState<
     localStorage.setItem(CARD_BG_ALPHA_STORAGE_KEY, String(alpha));
   };
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [studentPhotoRefMap, setStudentPhotoRefMap] = useState<Record<string, string>>(() => {
+  const [studentPhotoRefMap, setStudentPhotoRefMap] = useState<
+    Record<string, string>
+  >(() => {
     const stored = localStorage.getItem(STUDENT_PHOTO_REF_MAP_STORAGE_KEY);
     if (!stored) {
       return {};
@@ -3985,7 +4454,9 @@ const [selectedBackground, setSelectedBackground] = useState<
       return {};
     }
   });
-  const [studentNameIdMap, setStudentNameIdMap] = useState<Record<string, string>>(() => {
+  const [studentNameIdMap, setStudentNameIdMap] = useState<
+    Record<string, string>
+  >(() => {
     const stored = localStorage.getItem(STUDENT_NAME_ID_MAP_STORAGE_KEY);
     if (!stored) {
       return {};
@@ -3999,7 +4470,6 @@ const [selectedBackground, setSelectedBackground] = useState<
   });
   const lastAutoHandledSelection = React.useRef("");
   const isAutoHandlingSelection = React.useRef(false);
-
 
   const rememberStudentPhotoRef = (studentId: string, ref: unknown) => {
     const keys = imageRefKeys(ref);
@@ -4017,7 +4487,10 @@ const [selectedBackground, setSelectedBackground] = useState<
       keys.forEach((key) => {
         next[key] = studentId;
       });
-      localStorage.setItem(STUDENT_PHOTO_REF_MAP_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(
+        STUDENT_PHOTO_REF_MAP_STORAGE_KEY,
+        JSON.stringify(next),
+      );
       return next;
     });
   };
@@ -4034,13 +4507,18 @@ const [selectedBackground, setSelectedBackground] = useState<
       }
 
       const next = { ...prev, [key]: studentId };
-      localStorage.setItem(STUDENT_NAME_ID_MAP_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(
+        STUDENT_NAME_ID_MAP_STORAGE_KEY,
+        JSON.stringify(next),
+      );
       return next;
     });
   };
 
   const resolveStudentIdFromSelectedContent = (
-    content: { altText?: { text?: string } | string; ref?: unknown } | undefined,
+    content:
+      | { altText?: { text?: string } | string; ref?: unknown }
+      | undefined,
   ): string | undefined => {
     if (!content) {
       return undefined;
@@ -4056,7 +4534,9 @@ const [selectedBackground, setSelectedBackground] = useState<
     return extractStudentIdFromSelectionContent(content);
   };
 
-  const _resolveStudentIdFromPageTitle = async (): Promise<string | undefined> => {
+  const _resolveStudentIdFromPageTitle = async (): Promise<
+    string | undefined
+  > => {
     const pageTitle = await getCurrentPageTitle();
     if (!pageTitle) {
       return undefined;
@@ -4065,7 +4545,9 @@ const [selectedBackground, setSelectedBackground] = useState<
     return studentNameIdMap[pageTitle.trim().toLowerCase()];
   };
 
-  const _resolveStudentIdFromStudentsByPageTitle = async (): Promise<string | undefined> => {
+  const _resolveStudentIdFromStudentsByPageTitle = async (): Promise<
+    string | undefined
+  > => {
     const pageTitle = await getCurrentPageTitle();
     const normalized = pageTitle?.trim().toLowerCase();
     if (!normalized) {
@@ -4091,36 +4573,47 @@ const [selectedBackground, setSelectedBackground] = useState<
     } catch (e) {
       const code = e instanceof CanvaError ? e.code : undefined;
       if (code === "permission_denied") {
-        throw new Error(intl.formatMessage({
-          
-          defaultMessage: "Login was cancelled. Please try again.",
-          description: "Error shown when the user cancels or denies the OAuth login flow",
-        }));
+        throw new Error(
+          intl.formatMessage({
+            defaultMessage: "Login was cancelled. Please try again.",
+            description:
+              "Error shown when the user cancels or denies the OAuth login flow",
+          }),
+        );
       }
-      throw new Error(intl.formatMessage({
-        
-        defaultMessage: "Login failed. Please try again.",
-        description: "Error shown when the OAuth login flow completes but no access token is returned",
-      }));
+      throw new Error(
+        intl.formatMessage({
+          defaultMessage: "Login failed. Please try again.",
+          description:
+            "Error shown when the OAuth login flow completes but no access token is returned",
+        }),
+      );
     }
     const token = await oauthClient.getAccessToken({ scope: OAUTH_SCOPE });
     if (!token) {
-      throw new Error(intl.formatMessage({
-        
-        defaultMessage: "Login failed. Please try again.",
-        description: "Error shown when the OAuth login flow completes but no access token is returned",
-      }));
+      throw new Error(
+        intl.formatMessage({
+          defaultMessage: "Login failed. Please try again.",
+          description:
+            "Error shown when the OAuth login flow completes but no access token is returned",
+        }),
+      );
     }
     try {
-      const info = await apiFetch("VALIDATE") as ValidateResponse;
+      const info = (await apiFetch("VALIDATE")) as ValidateResponse;
       const email = info.email ?? "";
       localStorage.setItem(CONNECTED_EMAIL_STORAGE_KEY, email);
       setConnectedEmail(email);
       if (typeof info.license_valid_until === "number") {
-        localStorage.setItem(LICENCE_VALID_UNTIL_STORAGE_KEY, String(info.license_valid_until));
+        localStorage.setItem(
+          LICENCE_VALID_UNTIL_STORAGE_KEY,
+          String(info.license_valid_until),
+        );
         setLicenseValidUntil(info.license_valid_until);
       }
-    } catch { /* e-mail ophalen mislukt, niet kritiek */ }
+    } catch {
+      /* e-mail ophalen mislukt, niet kritiek */
+    }
     setIsAuthenticated(true);
     setAppState("idle");
     setActiveTab("generate");
@@ -4131,11 +4624,13 @@ const [selectedBackground, setSelectedBackground] = useState<
     setIsBackgroundModalOpen(true);
 
     if (!isAuthenticated) {
-      setBackgroundsError(intl.formatMessage({
-        
-        defaultMessage: "Connect your account first to load backgrounds.",
-        description: "Error shown when trying to open the background picker without a connected account",
-      }));
+      setBackgroundsError(
+        intl.formatMessage({
+          defaultMessage: "Connect your account first to load backgrounds.",
+          description:
+            "Error shown when trying to open the background picker without a connected account",
+        }),
+      );
       return;
     }
 
@@ -4150,11 +4645,12 @@ const [selectedBackground, setSelectedBackground] = useState<
       const options = await fetchBackgrounds();
       setBackgroundOptions(options);
     } catch {
-      setBackgroundsError(intl.formatMessage({
-        
-        defaultMessage: "Could not load backgrounds.",
-        description: "Error shown when the background images fail to load",
-      }));
+      setBackgroundsError(
+        intl.formatMessage({
+          defaultMessage: "Could not load backgrounds.",
+          description: "Error shown when the background images fail to load",
+        }),
+      );
     } finally {
       setBackgroundsLoading(false);
     }
@@ -4171,11 +4667,13 @@ const [selectedBackground, setSelectedBackground] = useState<
     setTapesWarning("");
 
     if (!isAuthenticated) {
-      setTapesError(intl.formatMessage({
-        
-        defaultMessage: "Connect your account first to load tapes.",
-        description: "Error shown when trying to open the tape picker without a connected account",
-      }));
+      setTapesError(
+        intl.formatMessage({
+          defaultMessage: "Connect your account first to load tapes.",
+          description:
+            "Error shown when trying to open the tape picker without a connected account",
+        }),
+      );
       return;
     }
 
@@ -4190,11 +4688,12 @@ const [selectedBackground, setSelectedBackground] = useState<
       const options = await fetchTapes();
       setTapeOptions(options);
     } catch {
-      setTapesError(intl.formatMessage({
-        
-        defaultMessage: "Could not load tapes.",
-        description: "Error shown when the tape images fail to load",
-      }));
+      setTapesError(
+        intl.formatMessage({
+          defaultMessage: "Could not load tapes.",
+          description: "Error shown when the tape images fail to load",
+        }),
+      );
     } finally {
       setTapesLoading(false);
     }
@@ -4211,11 +4710,13 @@ const [selectedBackground, setSelectedBackground] = useState<
       }
 
       if (prev.length >= 10) {
-        setTapesWarning(intl.formatMessage({
-          
-          defaultMessage: "You can select a maximum of 10 tapes.",
-          description: "Warning shown when the user tries to select more than 10 tapes",
-        }));
+        setTapesWarning(
+          intl.formatMessage({
+            defaultMessage: "You can select a maximum of 10 tapes.",
+            description:
+              "Warning shown when the user tries to select more than 10 tapes",
+          }),
+        );
         return prev;
       }
 
@@ -4258,13 +4759,19 @@ const [selectedBackground, setSelectedBackground] = useState<
   };
 
   useEffect(() => {
-    localStorage.setItem(REPORT_FROM_DATE_STORAGE_KEY, reportDateRange.fromDate);
+    localStorage.setItem(
+      REPORT_FROM_DATE_STORAGE_KEY,
+      reportDateRange.fromDate,
+    );
     localStorage.setItem(REPORT_TO_DATE_STORAGE_KEY, reportDateRange.toDate);
   }, [reportDateRange]);
 
   useEffect(() => {
     if (headingFont) {
-      localStorage.setItem(HEADING_FONT_STORAGE_KEY, JSON.stringify(headingFont));
+      localStorage.setItem(
+        HEADING_FONT_STORAGE_KEY,
+        JSON.stringify(headingFont),
+      );
       return;
     }
 
@@ -4283,22 +4790,26 @@ const [selectedBackground, setSelectedBackground] = useState<
   const openStudentPhotoPicker = async () => {
     if (!isAuthenticated) {
       setStudentPhotos([]);
-      setStudentPhotosError(intl.formatMessage({
-        
-        defaultMessage: "Connect your account first to load student photos.",
-        description: "Error shown when opening the photo picker without a connected account",
-      }));
+      setStudentPhotosError(
+        intl.formatMessage({
+          defaultMessage: "Connect your account first to load student photos.",
+          description:
+            "Error shown when opening the photo picker without a connected account",
+        }),
+      );
       setIsPhotoModalOpen(true);
       return;
     }
 
     if (imageSelection.count === 0) {
       setStudentPhotos([]);
-      setStudentPhotosError(intl.formatMessage({
-        
-        defaultMessage: "First select a photo in your Canva document.",
-        description: "Error shown when the user opens the photo picker without selecting an image first",
-      }));
+      setStudentPhotosError(
+        intl.formatMessage({
+          defaultMessage: "First select a photo in your Canva document.",
+          description:
+            "Error shown when the user opens the photo picker without selecting an image first",
+        }),
+      );
       setIsPhotoModalOpen(true);
       return;
     }
@@ -4321,11 +4832,14 @@ const [selectedBackground, setSelectedBackground] = useState<
         setSelectedStudentId("");
         setStudentSelectionOptions([]);
         setStudentSelectionLoading(false);
-        setStudentPhotosError(intl.formatMessage({
-          
-          defaultMessage: "This selection is not a linked student photo. Select a photo inside a polaroid.",
-          description: "Error shown when the selected image is not recognized as a student photo",
-        }));
+        setStudentPhotosError(
+          intl.formatMessage({
+            defaultMessage:
+              "This selection is not a linked student photo. Select a photo inside a polaroid.",
+            description:
+              "Error shown when the selected image is not recognized as a student photo",
+          }),
+        );
         setIsPhotoModalOpen(true);
         return;
       }
@@ -4334,21 +4848,23 @@ const [selectedBackground, setSelectedBackground] = useState<
       setSelectedStudentId(studentId);
       setStudentPhotos(photos);
       if (photos.length === 0) {
-        setStudentPhotosError(intl.formatMessage({
-          
-          defaultMessage: "No student photos found for this student.",
-          description: "Shown when a student has no photos available",
-        }));
+        setStudentPhotosError(
+          intl.formatMessage({
+            defaultMessage: "No student photos found for this student.",
+            description: "Shown when a student has no photos available",
+          }),
+        );
       }
       setIsPhotoModalOpen(true);
     } catch {
       setStudentPhotos([]);
       setSelectedStudentId("");
-      setStudentPhotosError(intl.formatMessage({
-        
-        defaultMessage: "Could not load student photos.",
-        description: "Error shown when the student photos fail to load",
-      }));
+      setStudentPhotosError(
+        intl.formatMessage({
+          defaultMessage: "Could not load student photos.",
+          description: "Error shown when the student photos fail to load",
+        }),
+      );
       setIsPhotoModalOpen(true);
     } finally {
       setStudentPhotosLoading(false);
@@ -4368,20 +4884,22 @@ const [selectedBackground, setSelectedBackground] = useState<
       setSelectedStudentId(student.id);
       setStudentPhotos(photos);
       if (photos.length === 0) {
-        setStudentPhotosError(intl.formatMessage({
-          
-          defaultMessage: "No student photos found for this student.",
-          description: "Shown when a student has no photos available",
-        }));
+        setStudentPhotosError(
+          intl.formatMessage({
+            defaultMessage: "No student photos found for this student.",
+            description: "Shown when a student has no photos available",
+          }),
+        );
       }
     } catch {
       setStudentPhotos([]);
       setSelectedStudentId("");
-      setStudentPhotosError(intl.formatMessage({
-        
-        defaultMessage: "Could not load student photos.",
-        description: "Error shown when the student photos fail to load",
-      }));
+      setStudentPhotosError(
+        intl.formatMessage({
+          defaultMessage: "Could not load student photos.",
+          description: "Error shown when the student photos fail to load",
+        }),
+      );
     } finally {
       setStudentPhotosLoading(false);
     }
@@ -4394,11 +4912,13 @@ const [selectedBackground, setSelectedBackground] = useState<
       const newRef = await uploadPhoto(photo.url);
       const draft = await imageSelection.read();
       if (draft.contents.length === 0) {
-        setStudentPhotosError(intl.formatMessage({
-          
-          defaultMessage: "Please select a photo in your document again.",
-          description: "Error asking the user to re-select a photo in the Canva document",
-        }));
+        setStudentPhotosError(
+          intl.formatMessage({
+            defaultMessage: "Please select a photo in your document again.",
+            description:
+              "Error asking the user to re-select a photo in the Canva document",
+          }),
+        );
         return;
       }
       draft.contents.forEach((item) => {
@@ -4414,11 +4934,12 @@ const [selectedBackground, setSelectedBackground] = useState<
 
       setIsPhotoModalOpen(false);
     } catch {
-      setStudentPhotosError(intl.formatMessage({
-        
-        defaultMessage: "Could not replace the selected photo.",
-        description: "Error shown when replacing a student photo fails",
-      }));
+      setStudentPhotosError(
+        intl.formatMessage({
+          defaultMessage: "Could not replace the selected photo.",
+          description: "Error shown when replacing a student photo fails",
+        }),
+      );
     } finally {
       setReplacingPhoto(false);
     }
@@ -4427,22 +4948,27 @@ const [selectedBackground, setSelectedBackground] = useState<
   const openNiveauHandPicker = async (knownColor?: string) => {
     if (!isAuthenticated) {
       setNiveauOptions([]);
-      setNiveauOptionsError(intl.formatMessage({
-        
-        defaultMessage: "Connect your account first to load levels.",
-        description: "Error shown when opening the level hand picker without a connected account",
-      }));
+      setNiveauOptionsError(
+        intl.formatMessage({
+          defaultMessage: "Connect your account first to load levels.",
+          description:
+            "Error shown when opening the level hand picker without a connected account",
+        }),
+      );
       setIsNiveauModalOpen(true);
       return;
     }
 
     if (imageSelection.count === 0) {
       setNiveauOptions([]);
-      setNiveauOptionsError(intl.formatMessage({
-        
-        defaultMessage: "First select a colored level hand in your Canva document.",
-        description: "Error shown when the user opens the level picker without selecting an image first",
-      }));
+      setNiveauOptionsError(
+        intl.formatMessage({
+          defaultMessage:
+            "First select a colored level hand in your Canva document.",
+          description:
+            "Error shown when the user opens the level picker without selecting an image first",
+        }),
+      );
       setIsNiveauModalOpen(true);
       return;
     }
@@ -4459,7 +4985,13 @@ const [selectedBackground, setSelectedBackground] = useState<
 
         // 1. Ref→kleur map (werkt binnen dezelfde sessie)
         if (content?.ref) {
-          try { initialColor = niveauHandRefToColor.get(JSON.stringify(content.ref)); } catch { /* ignore ref lookup failures */ }
+          try {
+            initialColor = niveauHandRefToColor.get(
+              JSON.stringify(content.ref),
+            );
+          } catch {
+            /* ignore ref lookup failures */
+          }
         }
 
         // 2. Metadata: altText / url / type / naam
@@ -4469,24 +5001,30 @@ const [selectedBackground, setSelectedBackground] = useState<
       }
 
       const options = await fetchNiveaus();
-      setSelectedNiveauColor(initialColor ? normalizeNiveauColor(initialColor) : "");
+      setSelectedNiveauColor(
+        initialColor ? normalizeNiveauColor(initialColor) : "",
+      );
       setNiveauOptions(options);
       if (!initialColor) {
-        setNiveauOptionsError(intl.formatMessage({
-          
-          defaultMessage: "Could not determine the current color — please choose a color manually.",
-          description: "Warning shown when the current level hand color cannot be detected automatically",
-        }));
+        setNiveauOptionsError(
+          intl.formatMessage({
+            defaultMessage:
+              "Could not determine the current color — please choose a color manually.",
+            description:
+              "Warning shown when the current level hand color cannot be detected automatically",
+          }),
+        );
       }
       setIsNiveauModalOpen(true);
     } catch {
       setNiveauOptions([]);
       setSelectedNiveauColor("");
-      setNiveauOptionsError(intl.formatMessage({
-        
-        defaultMessage: "Could not load levels.",
-        description: "Error shown when the level options fail to load",
-      }));
+      setNiveauOptionsError(
+        intl.formatMessage({
+          defaultMessage: "Could not load levels.",
+          description: "Error shown when the level options fail to load",
+        }),
+      );
       setIsNiveauModalOpen(true);
     } finally {
       setNiveauOptionsLoading(false);
@@ -4504,19 +5042,24 @@ const [selectedBackground, setSelectedBackground] = useState<
 
       const draft = await imageSelection.read();
       if (draft.contents.length === 0) {
-        setNiveauOptionsError(intl.formatMessage({
-          
-          defaultMessage: "Please select a level hand in your document again.",
-          description: "Error asking the user to re-select a level hand in the Canva document",
-        }));
+        setNiveauOptionsError(
+          intl.formatMessage({
+            defaultMessage:
+              "Please select a level hand in your document again.",
+            description:
+              "Error asking the user to re-select a level hand in the Canva document",
+          }),
+        );
         return;
       }
 
       draft.contents.forEach((item) => {
         item.ref = newRef;
-        (item as {
-          altText?: { text: string; decorative: boolean };
-        }).altText = {
+        (
+          item as {
+            altText?: { text: string; decorative: boolean };
+          }
+        ).altText = {
           text: `niveaukleur:${normalizedColor}`,
           decorative: true,
         };
@@ -4530,11 +5073,12 @@ const [selectedBackground, setSelectedBackground] = useState<
       setSelectedNiveauColor(normalizedColor);
       setIsNiveauModalOpen(false);
     } catch {
-      setNiveauOptionsError(intl.formatMessage({
-        
-        defaultMessage: "Could not change the color of this level hand.",
-        description: "Error shown when replacing a level hand image fails",
-      }));
+      setNiveauOptionsError(
+        intl.formatMessage({
+          defaultMessage: "Could not change the color of this level hand.",
+          description: "Error shown when replacing a level hand image fails",
+        }),
+      );
     } finally {
       setReplacingNiveauHand(false);
     }
@@ -4578,7 +5122,7 @@ const [selectedBackground, setSelectedBackground] = useState<
         const marker =
           typeof content.altText === "string"
             ? content.altText
-            : content.altText?.text ?? "";
+            : (content.altText?.text ?? "");
         const selectionKey = JSON.stringify(content.ref ?? "") + marker;
         if (lastAutoHandledSelection.current === selectionKey) {
           return;
@@ -4586,13 +5130,18 @@ const [selectedBackground, setSelectedBackground] = useState<
         lastAutoHandledSelection.current = selectionKey;
 
         // 1. Detect via altText / URL / type / name
-        let detectedNiveauColor = extractNiveauColorFromSelectionContent(content);
+        let detectedNiveauColor =
+          extractNiveauColorFromSelectionContent(content);
 
         // 2. Detect via ref→color map (needed when altText is unavailable for decorative images)
         if (!detectedNiveauColor && content.ref) {
           try {
-            detectedNiveauColor = niveauHandRefToColor.get(JSON.stringify(content.ref)) || undefined;
-          } catch { /* ignore ref lookup failures */ }
+            detectedNiveauColor =
+              niveauHandRefToColor.get(JSON.stringify(content.ref)) ||
+              undefined;
+          } catch {
+            /* ignore ref lookup failures */
+          }
         }
 
         if (detectedNiveauColor) {
@@ -4635,43 +5184,60 @@ const [selectedBackground, setSelectedBackground] = useState<
     templateId: "rapport",
     extraTexts: PageExtraTexts,
   ) => {
+    currentGenerationPageDimensions = undefined;
+
     if (!canAddPage) {
-      setGenerationError(intl.formatMessage({
-        
-        defaultMessage: "This Canva document doesn't support new pages. Open the report in a document type that can add pages.",
-        description: "Error shown when the current Canva document type does not support adding pages",
-      }));
+      setGenerationError(
+        intl.formatMessage({
+          defaultMessage:
+            "This Canva document doesn't support new pages. Open the report in a document type that can add pages.",
+          description:
+            "Error shown when the current Canva document type does not support adding pages",
+        }),
+      );
       return;
     }
 
     const pageDimensions = await getCurrentPageDimensions();
     const metadata = await getDesignMetadata();
-    const dimensions = pageDimensions ?? metadata.defaultPageDimensions;
+    const defaultDimensions = metadata.defaultPageDimensions;
+
+    const dimensions = pageDimensions ?? defaultDimensions;
 
     if (!dimensions || !isA4Dimensions(dimensions.width, dimensions.height)) {
-      setGenerationError(intl.formatMessage({
-        
-        defaultMessage: "This Canva document is not A4. New pages always take the size of the current document.",
-        description: "Error shown when the current Canva document is not A4 format",
-      }));
+      setGenerationError(
+        intl.formatMessage({
+          defaultMessage:
+            "This Canva document is not A4. New pages always take the size of the current document. Resize the document to A4 and refresh the page.",
+          description:
+            "Error shown when the current Canva document is not A4 format",
+        }),
+      );
       return;
     } else if (!reportDateRange.fromDate || !reportDateRange.toDate) {
-      setGenerationError(intl.formatMessage({
-        
-        defaultMessage: "First choose a from and to date for the report data.",
-        description: "Error shown when no date range has been selected before generating",
-      }));
+      setGenerationError(
+        intl.formatMessage({
+          defaultMessage:
+            "First choose a from and to date for the report data.",
+          description:
+            "Error shown when no date range has been selected before generating",
+        }),
+      );
       return;
     } else if (reportDateRange.fromDate > reportDateRange.toDate) {
-      setGenerationError(intl.formatMessage({
-        
-        defaultMessage: "The from date cannot be later than the to date.",
-        description: "Error shown when the start date is set after the end date",
-      }));
+      setGenerationError(
+        intl.formatMessage({
+          defaultMessage: "The from date cannot be later than the to date.",
+          description:
+            "Error shown when the start date is set after the end date",
+        }),
+      );
       return;
     } else {
       setGenerationError("");
     }
+
+    currentGenerationPageDimensions = dimensions;
 
     setGeneratePayload({ students, templateId, extraTexts });
     setAppState("generating");
@@ -4695,7 +5261,10 @@ const [selectedBackground, setSelectedBackground] = useState<
   }
 
   return (
-    <Tabs activeId={activeTab} onSelect={(value) => setActiveTab(value as AppTab)}>
+    <Tabs
+      activeId={activeTab}
+      onSelect={(value) => setActiveTab(value as AppTab)}
+    >
       <Box padding="2u" display="flex" flexDirection="column">
         <Box paddingBottom="1u">
           <TabList>
@@ -4705,7 +5274,6 @@ const [selectedBackground, setSelectedBackground] = useState<
               onClick={() => setActiveTab("settings")}
             >
               {intl.formatMessage({
-                
                 defaultMessage: "Layout",
                 description: "Label for the Layout tab",
               })}
@@ -4716,7 +5284,6 @@ const [selectedBackground, setSelectedBackground] = useState<
               onClick={() => setActiveTab("generate")}
             >
               {intl.formatMessage({
-                
                 defaultMessage: "Generate",
                 description: "Label for the Generate tab",
               })}
@@ -4727,7 +5294,6 @@ const [selectedBackground, setSelectedBackground] = useState<
               onClick={() => setActiveTab("support")}
             >
               {intl.formatMessage({
-                
                 defaultMessage: "Customize",
                 description: "Label for the Customize tab",
               })}
@@ -4768,11 +5334,14 @@ const [selectedBackground, setSelectedBackground] = useState<
                 templateId={generatePayload.templateId}
                 reportDateRange={reportDateRange}
                 teacherName={teacherName}
-                reportTitle={reportTitle.trim() || intl.formatMessage({
-                  
-                  defaultMessage: "Look what I can already do!",
-                  description: "Default report title shown as placeholder and fallback",
-                })}
+                reportTitle={
+                  reportTitle.trim() ||
+                  intl.formatMessage({
+                    defaultMessage: "Look what I can already do!",
+                    description:
+                      "Default report title shown as placeholder and fallback",
+                  })
+                }
                 reportFooter={reportFooter}
                 selectedTapes={selectedTapes}
                 reportContentOptions={reportContentOptions}
@@ -4811,14 +5380,12 @@ const [selectedBackground, setSelectedBackground] = useState<
               <Rows spacing="1u">
                 <Text variant="bold">
                   <FormattedMessage
-                    
                     defaultMessage="Replace selected student photo"
                     description="Heading for the photo replacement section in the Customize tab"
                   />
                 </Text>
                 <Text tone="tertiary">
                   <FormattedMessage
-                    
                     defaultMessage="First click on a student photo or level hand in your Canva document, then choose a new photo or color."
                     description="Instructions for replacing a student photo or level hand"
                   />
@@ -4831,7 +5398,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   loading={studentPhotosLoading}
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Choose replacement photo",
                     description: "Button to open the student photo picker",
                   })}
@@ -4843,7 +5409,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   disabled={imageSelectionCount === 0}
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Change color of selected hand",
                     description: "Button to open the level hand color picker",
                   })}
@@ -4864,7 +5429,8 @@ const [selectedBackground, setSelectedBackground] = useState<
             style={{
               position: "fixed",
               inset: 0,
-              background: "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
+              background:
+                "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -4878,7 +5444,8 @@ const [selectedBackground, setSelectedBackground] = useState<
                 maxWidth: 720,
                 maxHeight: "80vh",
                 overflow: "auto",
-                background: "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
+                background:
+                  "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
                 boxShadow: "var(--ui-kit-elevation-surface-floating-shadow)",
                 borderRadius: 16,
                 padding: 20,
@@ -4888,14 +5455,12 @@ const [selectedBackground, setSelectedBackground] = useState<
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
                     <FormattedMessage
-                      
                       defaultMessage="Set background"
                       description="Title of the background picker modal"
                     />
                   </Text>
                   <Text tone="tertiary">
                     <FormattedMessage
-                      
                       defaultMessage="Choose a background to use for newly generated A4 pages."
                       description="Description shown at the top of the background picker modal"
                     />
@@ -4933,7 +5498,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   stretch
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Close",
                     description: "Button to close a modal dialog",
                   })}
@@ -4948,7 +5512,8 @@ const [selectedBackground, setSelectedBackground] = useState<
             style={{
               position: "fixed",
               inset: 0,
-              background: "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
+              background:
+                "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -4962,7 +5527,8 @@ const [selectedBackground, setSelectedBackground] = useState<
                 maxWidth: 720,
                 maxHeight: "80vh",
                 overflow: "auto",
-                background: "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
+                background:
+                  "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
                 boxShadow: "var(--ui-kit-elevation-surface-floating-shadow)",
                 borderRadius: 16,
                 padding: 20,
@@ -4972,7 +5538,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
                     <FormattedMessage
-                      
                       defaultMessage="Replace student photo"
                       description="Title of the student photo replacement modal"
                     />
@@ -4981,16 +5546,17 @@ const [selectedBackground, setSelectedBackground] = useState<
                     {selectedStudentId
                       ? intl.formatMessage(
                           {
-                            
                             defaultMessage: "Choose a photo for student {id}.",
-                            description: "Instructions shown when a specific student is identified",
+                            description:
+                              "Instructions shown when a specific student is identified",
                           },
                           { id: selectedStudentId },
                         )
                       : intl.formatMessage({
-                          
-                          defaultMessage: "Choose a new photo for the selected image.",
-                          description: "Instructions shown when no specific student is identified",
+                          defaultMessage:
+                            "Choose a new photo for the selected image.",
+                          description:
+                            "Instructions shown when no specific student is identified",
                         })}
                   </Text>
                 </Rows>
@@ -5006,7 +5572,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                       <Rows spacing="1u">
                         <Text variant="bold">
                           <FormattedMessage
-                            
                             defaultMessage="Choose student"
                             description="Heading above the student selection list in the photo modal"
                           />
@@ -5015,7 +5580,9 @@ const [selectedBackground, setSelectedBackground] = useState<
                           <Button
                             key={student.id}
                             variant="secondary"
-                            onClick={() => handleStudentSelectionForPhotos(student)}
+                            onClick={() =>
+                              handleStudentSelectionForPhotos(student)
+                            }
                             stretch
                           >
                             {student.name}
@@ -5032,17 +5599,17 @@ const [selectedBackground, setSelectedBackground] = useState<
                           <ImageCard
                             ariaLabel={intl.formatMessage(
                               {
-                                
                                 defaultMessage: "Student photo {id}",
-                                description: "Accessible label for a student photo thumbnail",
+                                description:
+                                  "Accessible label for a student photo thumbnail",
                               },
                               { id: photo.id },
                             )}
                             alt={intl.formatMessage(
                               {
-                                
                                 defaultMessage: "Student photo {id}",
-                                description: "Accessible label for a student photo thumbnail",
+                                description:
+                                  "Accessible label for a student photo thumbnail",
                               },
                               { id: photo.id },
                             )}
@@ -5064,7 +5631,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   disabled={replacingPhoto}
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Close",
                     description: "Button to close a modal dialog",
                   })}
@@ -5079,7 +5645,8 @@ const [selectedBackground, setSelectedBackground] = useState<
             style={{
               position: "fixed",
               inset: 0,
-              background: "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
+              background:
+                "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -5093,7 +5660,8 @@ const [selectedBackground, setSelectedBackground] = useState<
                 maxWidth: 720,
                 maxHeight: "80vh",
                 overflow: "auto",
-                background: "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
+                background:
+                  "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
                 boxShadow: "var(--ui-kit-elevation-surface-floating-shadow)",
                 borderRadius: 16,
                 padding: 20,
@@ -5103,14 +5671,12 @@ const [selectedBackground, setSelectedBackground] = useState<
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
                     <FormattedMessage
-                      
                       defaultMessage="Change level hand color"
                       description="Title of the level hand color picker modal"
                     />
                   </Text>
                   <Text tone="tertiary">
                     <FormattedMessage
-                      
                       defaultMessage="Click on a color to replace the selected level hand in your document."
                       description="Instructions shown at the top of the level hand color picker modal"
                     />
@@ -5122,13 +5688,20 @@ const [selectedBackground, setSelectedBackground] = useState<
                 ) : (
                   <>
                     {niveauOptionsError && (
-                      <Alert tone={niveauOptions.length > 0 ? "info" : "critical"}>{niveauOptionsError}</Alert>
+                      <Alert
+                        tone={niveauOptions.length > 0 ? "info" : "critical"}
+                      >
+                        {niveauOptionsError}
+                      </Alert>
                     )}
                     {niveauOptions.length > 0 && (
                       <Grid columns={2} spacing="1.5u">
                         {niveauOptions.map((niveau) => {
-                          const normalizedColor = normalizeNiveauColor(niveau.color);
-                          const handUrl = buildNiveauHandImageUrl(normalizedColor);
+                          const normalizedColor = normalizeNiveauColor(
+                            niveau.color,
+                          );
+                          const handUrl =
+                            buildNiveauHandImageUrl(normalizedColor);
 
                           return (
                             <Box key={niveau.id}>
@@ -5137,9 +5710,13 @@ const [selectedBackground, setSelectedBackground] = useState<
                                   ariaLabel={niveau.name}
                                   alt={niveau.name}
                                   thumbnailUrl={handUrl}
-                                  onClick={() => handleNiveauHandReplace(niveau.color)}
+                                  onClick={() =>
+                                    handleNiveauHandReplace(niveau.color)
+                                  }
                                   selectable={true}
-                                  selected={selectedNiveauColor === normalizedColor}
+                                  selected={
+                                    selectedNiveauColor === normalizedColor
+                                  }
                                   borderRadius="standard"
                                 />
                                 <Text>{niveau.name}</Text>
@@ -5159,7 +5736,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   disabled={replacingNiveauHand}
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Close",
                     description: "Button to close a modal dialog",
                   })}
@@ -5174,7 +5750,8 @@ const [selectedBackground, setSelectedBackground] = useState<
             style={{
               position: "fixed",
               inset: 0,
-              background: "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
+              background:
+                "var(--ui-kit-color-ui-overlay-bg, rgba(36, 44, 61, 0.4))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -5188,7 +5765,8 @@ const [selectedBackground, setSelectedBackground] = useState<
                 maxWidth: 720,
                 maxHeight: "80vh",
                 overflow: "auto",
-                background: "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
+                background:
+                  "var(--ui-kit-elevation-surface-floating-bg, #ffffff)",
                 boxShadow: "var(--ui-kit-elevation-surface-floating-shadow)",
                 borderRadius: 16,
                 padding: 20,
@@ -5198,14 +5776,12 @@ const [selectedBackground, setSelectedBackground] = useState<
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
                     <FormattedMessage
-                      
                       defaultMessage="Choose tapes"
                       description="Title of the tape picker modal"
                     />
                   </Text>
                   <Text tone="tertiary">
                     <FormattedMessage
-                      
                       defaultMessage="Choose a maximum of 10 tapes."
                       description="Instructions shown at the top of the tape picker modal"
                     />
@@ -5229,7 +5805,9 @@ const [selectedBackground, setSelectedBackground] = useState<
                               thumbnailUrl={tape.url}
                               onClick={() => handleTapeToggle(tape)}
                               selectable={true}
-                              selected={selectedTapes.some((item) => item.id === tape.id)}
+                              selected={selectedTapes.some(
+                                (item) => item.id === tape.id,
+                              )}
                               borderRadius="standard"
                             />
                             <Text>{tape.name}</Text>
@@ -5246,7 +5824,6 @@ const [selectedBackground, setSelectedBackground] = useState<
                   stretch
                 >
                   {intl.formatMessage({
-                    
                     defaultMessage: "Close",
                     description: "Button to close a modal dialog",
                   })}

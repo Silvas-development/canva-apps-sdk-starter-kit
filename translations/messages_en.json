@@ -187,10 +187,6 @@
     "defaultMessage": "{name} (levels {page})",
     "description": "Title for continued development goal levels pages with page number."
   },
-  "KYkKdz": {
-    "defaultMessage": "This Canva document is not A4. New pages always take the size of the current document.",
-    "description": "Error shown when the current Canva document is not A4 format"
-  },
   "KzIYHX": {
     "defaultMessage": "An individual student",
     "description": "Radio option to generate a report for one student"
@@ -331,6 +327,10 @@
     "defaultMessage": "Card background color",
     "description": "Label for the card background color picker in Settings"
   },
+  "c5C22x": {
+    "defaultMessage": "Report generation progress",
+    "description": "Accessible label for the progress bar while generating report pages."
+  },
   "cU5vqL": {
     "defaultMessage": "Teacher: {teacherName}",
     "description": "Label for teacher name on the generated report cover page."
@@ -398,6 +398,10 @@
   "id/GWN": {
     "defaultMessage": "Replace student photo",
     "description": "Title of the student photo replacement modal"
+  },
+  "jDjaLg": {
+    "defaultMessage": "This Canva document is not A4. New pages always take the size of the current document. Resize the document to A4 and refresh the page.",
+    "description": "Error shown when the current Canva document is not A4 format"
   },
   "jLMadh": {
     "defaultMessage": "First choose a from and to date for the report data.",
