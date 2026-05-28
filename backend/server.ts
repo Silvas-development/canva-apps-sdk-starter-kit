@@ -1,68 +1,67 @@
-import express from "express";
+import "dotenv/config";
+import { user } from "@canva/app-middleware/express";
 import cors from "cors";
+import express from "express";
+import { createBaseServer } from "../utils/backend/base_backend/create";
 
-const app = express();
-const PORT = process.env.CANVA_BACKEND_PORT ?? 3001;
-const APP_ORIGIN = process.env.CANVA_APP_ORIGIN ?? "http://localhost:8080";
+type Observation = {
+  date: string;
+  domain: string;
+  note: string;
+  score?: number;
+};
 
-// ─── Middleware ────────────────────────────────────────────────────────────────
+type Student = {
+  id: string;
+  name: string;
+  birthDate: string;
+  group: string;
+  photoUrl: string;
+  observations: Observation[];
+};
 
-app.use(express.json());
+type Group = {
+  id: string;
+  name: string;
+  studentCount: number;
+};
 
-app.use(
+const APP_ID = process.env.CANVA_APP_ID;
+const APP_ORIGIN = process.env.CANVA_APP_ORIGIN;
+
+if (!APP_ID) {
+  throw new Error(
+    "The CANVA_APP_ID environment variable is undefined. Set it in the project's .env file.",
+  );
+}
+
+const router = express.Router();
+router.use(
   cors({
-    origin: APP_ORIGIN,
-    methods: ["GET", "POST"],
+    origin: APP_ORIGIN ?? true,
+    methods: ["GET"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
-// ─── OAuth Bearer-token validatie ─────────────────────────────────────────────
-
-/**
- * Haal het Bearer-token op uit de Authorization-header.
- * In productie zou je dit token valideren via het OAuth-introspectie-endpoint
- * van de SCV-server (https://scv.silvas.dev/oauth/v1/token).
- * Voor de lokale dev-mock accepteren we elk geldig-uitziend Bearer-token.
- */
-function extractBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7).trim();
-  return token.length > 0 ? token : null;
-}
-
-async function requireAuth(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) {
-  const token = extractBearerToken(req.headers.authorization);
-  if (!token) {
-    res.status(401).json({ error: "Geen geldig Bearer-token aanwezig." });
-    return;
-  }
-  // Token doorsturen naar volgende route-handler
-  (req as any).accessToken = token;
-  next();
-}
-
-// ─── Mock database (vervang door jouw echte DB) ────────────────────────────────
+// Verify Canva-issued JWTs on all API routes.
+router.use(user.verifyToken({ appId: APP_ID }));
 
 const mockDb = {
-  async getStudents(groupId?: string): Promise<any[]> {
-    // Vervang door: SELECT * FROM students WHERE group_id = ?
+  async getStudents(groupId?: string): Promise<Student[]> {
     let students = MOCK_STUDENTS;
     if (groupId && groupId !== "0") {
-      students = students.filter((s) => s.group === groupId);
+      students = students.filter((student) => student.group === groupId);
     }
     return students;
   },
 
-  async getGroups(): Promise<any[]> {
+  async getGroups(): Promise<Group[]> {
     const groupMap = new Map<string, number>();
-    for (const s of MOCK_STUDENTS) {
-      groupMap.set(s.group, (groupMap.get(s.group) ?? 0) + 1);
+    for (const student of MOCK_STUDENTS) {
+      groupMap.set(student.group, (groupMap.get(student.group) ?? 0) + 1);
     }
+
     return Array.from(groupMap.entries()).map(([name, count]) => ({
       id: name,
       name,
@@ -71,24 +70,19 @@ const mockDb = {
   },
 };
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
-app.get("/api/groups", requireAuth, async (_req, res) => {
+router.get("/api/groups", async (_req, res) => {
   const groups = await mockDb.getGroups();
   res.json(groups);
 });
 
-app.get("/api/students", requireAuth, async (req, res) => {
+router.get("/api/students", async (req, res) => {
   const groupId = req.query.group_id as string | undefined;
   const students = await mockDb.getStudents(groupId);
   res.json(students);
 });
 
-// ─── Start server ─────────────────────────────────────────────────────────────
-
-app.listen(PORT, () => {
-  console.log(`✅ Backend draait op http://localhost:${PORT}`);
-});
+const server = createBaseServer(router);
+server.start(process.env.CANVA_BACKEND_PORT);
 
 // ─── Mock data (vervang door echte DB-queries) ────────────────────────────────
 

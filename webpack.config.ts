@@ -215,7 +215,7 @@ function buildDevConfig(options?: DevConfig): {
       publicPath: "/assets",
     },
     setupMiddlewares: (middlewares, server) => {
-      if (!server) {
+      if (!server || !server.app) {
         return middlewares;
       }
 
