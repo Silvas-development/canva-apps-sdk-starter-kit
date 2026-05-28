@@ -2723,7 +2723,7 @@ function GenerateScreen({
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupStudents, setGroupStudents] = useState<Student[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
-  const [selectionMode, setSelectionMode] = useState<"group" | "student">("group");
+  const [selectionMode, setSelectionMode] = useState<"group" | "student">("student");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -2738,7 +2738,7 @@ function GenerateScreen({
       setGroups([]);
       setGroupStudents([]);
       setAllStudents([]);
-      setSelectionMode("group");
+      setSelectionMode("student");
       setSelectedGroup("");
       setSelectedStudentId("");
       setLoadError("");
@@ -2811,7 +2811,7 @@ function GenerateScreen({
           setGroupStudents([]);
           setLoadError(intl.formatMessage({
             id: "generate.groupStudentsError",
-            defaultMessage: "Could not retrieve students for this class.",
+            defaultMessage: "Something went wrong while loading the students. Please try again later.",
             description: "Error shown when loading students for a selected class fails",
           }));
         }
@@ -2879,19 +2879,6 @@ function GenerateScreen({
           onChange={(value) => setSelectionMode(value as "group" | "student")}
           options={[
             {
-              value: "group",
-              label: intl.formatMessage({
-                id: "generate.mode.group",
-                defaultMessage: "An entire class",
-                description: "Radio option to generate reports for a whole class",
-              }),
-              description: intl.formatMessage({
-                id: "generate.mode.group.description",
-                defaultMessage: "Generate for all students in 1 class",
-                description: "Description for the 'entire class' radio option",
-              }),
-            },
-            {
               value: "student",
               label: intl.formatMessage({
                 id: "generate.mode.student",
@@ -2902,6 +2889,19 @@ function GenerateScreen({
                 id: "generate.mode.student.description",
                 defaultMessage: "Generate 1 individual report",
                 description: "Description for the 'individual student' radio option",
+              }),
+            },
+            {
+              value: "group",
+              label: intl.formatMessage({
+                id: "generate.mode.group",
+                defaultMessage: "An entire class",
+                description: "Radio option to generate reports for a whole class",
+              }),
+              description: intl.formatMessage({
+                id: "generate.mode.group.description",
+                defaultMessage: "Generate for all students in 1 class",
+                description: "Description for the 'entire class' radio option",
               }),
             },
           ]}
@@ -3291,13 +3291,11 @@ function SupportScreen({
   connectedEmail,
   licenseValidUntil,
   onLogin,
-  onDisconnect,
 }: {
   isAuthenticated: boolean;
   connectedEmail: string;
   licenseValidUntil: number | null;
   onLogin: () => Promise<void>;
-  onDisconnect: () => Promise<void>;
 }) {
   const intl = useIntl();
   const [loading, setLoading] = useState(false);
@@ -3390,15 +3388,6 @@ function SupportScreen({
             </Text>
           )
         )}
-        {isAuthenticated && (
-          <Button variant="secondary" onClick={onDisconnect} stretch>
-            {intl.formatMessage({
-              id: "support.disconnect.button",
-              defaultMessage: "Disconnect",
-              description: "Button to unlink the currently connected MijnKleutergroep account",
-            })}
-          </Button>
-        )}
       </Rows>
     </Rows>
   );
@@ -3415,8 +3404,6 @@ function GeneratingScreen({
   selectedTapes,
   reportContentOptions,
   extraTexts,
-  logoRef,
-  logoAspectRatio,
   selectedBackground,
   headingFont,
   bodyFont,
@@ -3436,8 +3423,6 @@ function GeneratingScreen({
   selectedTapes: TapeOption[];
   reportContentOptions: ReportContentOptions;
   extraTexts: PageExtraTexts;
-  logoRef: ImageRef | undefined;
-  logoAspectRatio: number | undefined;
   selectedBackground?: BackgroundOption;
   headingFont: SelectedFont | null;
   bodyFont: SelectedFont | null;
@@ -3460,6 +3445,20 @@ function GeneratingScreen({
       currentCardBgColor = blendWithWhite(cardBgColor, cardBgAlpha);
       const failedNames: string[] = [];
 
+      let resolvedLogoRef: ImageRef | undefined;
+      let resolvedLogoAspectRatio: number | undefined;
+      try {
+        const url = await fetchLogoUrl();
+        if (url) {
+          [resolvedLogoRef, resolvedLogoAspectRatio] = await Promise.all([
+            uploadLogo(url),
+            resolveImageAspectRatio(url),
+          ]);
+        }
+      } catch {
+        // Logo is non-critical; silently ignore errors
+      }
+
       for (const student of students) {
         if (cancelled.current) return;
         try {
@@ -3472,8 +3471,8 @@ function GeneratingScreen({
             reportFooter,
             selectedTapes,
             reportContentOptions,
-            logoRef,
-            logoAspectRatio,
+            resolvedLogoRef,
+            resolvedLogoAspectRatio,
             selectedBackground,
             headingFont,
             bodyFont,
@@ -3598,23 +3597,20 @@ function DoneScreen({ count, onBack }: { count: number; onBack: () => void }) {
   }, [onBack]);
   return (
     <Rows spacing="3u">
-      <Rows spacing="1u">
-        <Text variant="bold" size="large">
-          <FormattedMessage
-            id="done.title"
-            defaultMessage="✅ Done!"
-            description="Title shown when all reports have been successfully generated"
-          />
-        </Text>
-        <Text>
-          <FormattedMessage
-            id="done.description"
-            defaultMessage="{count} pages have been created in your Canva document. You can now make changes and then print via Share → Download → PDF."
-            description="Success message shown after generating reports, explaining next steps"
-            values={{ count }}
-          />
-        </Text>
-      </Rows>
+      <Alert tone="positive">
+        <FormattedMessage
+          id="done.title"
+          defaultMessage="Done!"
+          description="Title shown when all reports have been successfully generated"
+        />
+        {" "}
+        <FormattedMessage
+          id="done.description"
+          defaultMessage="{count} pages have been created in your Canva document. You can now make changes and then print via Share → Download → PDF."
+          description="Success message shown after generating reports, explaining next steps"
+          values={{ count }}
+        />
+      </Alert>
       <Button variant="primary" onClick={onBack} stretch>
         {intl.formatMessage({
           id: "done.button",
@@ -3675,9 +3671,7 @@ export const App = () => {
     getStoredReportDateRange(),
   );
   const [generationError, setGenerationError] = useState<string>("");
-  const [logoRef, setLogoRef] = useState<ImageRef | undefined>(undefined);
-  const [logoAspectRatio, setLogoAspectRatio] = useState<number | undefined>(undefined);
-  const [selectedBackground, setSelectedBackground] = useState<
+const [selectedBackground, setSelectedBackground] = useState<
     BackgroundOption | undefined
   >(() => {
     const stored = localStorage.getItem(BACKGROUND_STORAGE_KEY);
@@ -3796,29 +3790,6 @@ export const App = () => {
   const lastAutoHandledSelection = React.useRef("");
   const isAutoHandlingSelection = React.useRef(false);
 
-  // Fetch and upload school logo once authenticated
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    setLogoRef(undefined);
-    setLogoAspectRatio(undefined);
-
-    fetchLogoUrl()
-      .then((url) => {
-        if (!url || cancelled) return;
-        return Promise.all([uploadLogo(url), resolveImageAspectRatio(url)]);
-      })
-      .then((result) => {
-        if (!result || cancelled) return;
-        const [ref, ratio] = result;
-        setLogoRef(ref);
-        setLogoAspectRatio(ratio);
-      })
-      .catch(() => {
-        // Logo is non-critical; silently ignore errors
-      });
-    return () => { cancelled = true; };
-  }, [isAuthenticated]);
 
   const rememberStudentPhotoRef = (studentId: string, ref: unknown) => {
     const keys = imageRefKeys(ref);
@@ -3905,10 +3876,30 @@ export const App = () => {
   };
 
   const handleLogin = async () => {
-    await oauthClient.requestAuthorization({ scope: OAUTH_SCOPE });
+    try {
+      await oauthClient.requestAuthorization({ scope: OAUTH_SCOPE });
+    } catch (e) {
+      const code = e instanceof CanvaError ? e.code : undefined;
+      if (code === "permission_denied") {
+        throw new Error(intl.formatMessage({
+          id: "support.login.cancelled",
+          defaultMessage: "Login was cancelled. Please try again.",
+          description: "Error shown when the user cancels or denies the OAuth login flow",
+        }));
+      }
+      throw new Error(intl.formatMessage({
+        id: "support.login.failed",
+        defaultMessage: "Login failed. Please try again.",
+        description: "Error shown when the OAuth login flow completes but no access token is returned",
+      }));
+    }
     const token = await oauthClient.getAccessToken({ scope: OAUTH_SCOPE });
     if (!token) {
-      throw new Error("No access token received after authorization.");
+      throw new Error(intl.formatMessage({
+        id: "support.login.failed",
+        defaultMessage: "Login failed. Please try again.",
+        description: "Error shown when the OAuth login flow completes but no access token is returned",
+      }));
     }
     try {
       const info = await apiFetch("VALIDATE") as ValidateResponse;
@@ -3923,35 +3914,6 @@ export const App = () => {
     setIsAuthenticated(true);
     setAppState("idle");
     setActiveTab("generate");
-    setGenerationError("");
-  };
-
-  const handleDisconnect = async () => {
-    [
-      BACKGROUND_STORAGE_KEY,
-      TAPES_STORAGE_KEY,
-      TEACHER_NAME_STORAGE_KEY,
-      REPORT_TITLE_STORAGE_KEY,
-      REPORT_FOOTER_STORAGE_KEY,
-      REPORT_CONTENT_STORAGE_KEY,
-      REPORT_FROM_DATE_STORAGE_KEY,
-      REPORT_TO_DATE_STORAGE_KEY,
-      HEADING_FONT_STORAGE_KEY,
-      BODY_FONT_STORAGE_KEY,
-      STUDENT_PHOTO_REF_MAP_STORAGE_KEY,
-      STUDENT_NAME_ID_MAP_STORAGE_KEY,
-      NIVEAU_HAND_REF_MAP_STORAGE_KEY,
-    ].forEach((key) => localStorage.removeItem(key));
-    niveauHandRefToColor.clear();
-    localStorage.removeItem(CONNECTED_EMAIL_STORAGE_KEY);
-    localStorage.removeItem(LICENCE_VALID_UNTIL_STORAGE_KEY);
-    setConnectedEmail("");
-    setLicenseValidUntil(null);
-    await oauthClient.deauthorize();
-    setIsAuthenticated(false);
-    setAppState("idle");
-    setActiveTab("settings");
-    setGeneratePayload(null);
     setGenerationError("");
   };
 
@@ -4502,7 +4464,6 @@ export const App = () => {
           connectedEmail={connectedEmail}
           licenseValidUntil={licenseValidUntil}
           onLogin={handleLogin}
-          onDisconnect={handleDisconnect}
         />
       </Box>
     );
@@ -4591,8 +4552,6 @@ export const App = () => {
                 selectedTapes={selectedTapes}
                 reportContentOptions={reportContentOptions}
                 extraTexts={generatePayload.extraTexts}
-                logoRef={logoRef}
-                logoAspectRatio={logoAspectRatio}
                 selectedBackground={selectedBackground}
                 headingFont={headingFont}
                 bodyFont={bodyFont}
@@ -4670,7 +4629,6 @@ export const App = () => {
                 connectedEmail={connectedEmail}
                 licenseValidUntil={licenseValidUntil}
                 onLogin={handleLogin}
-                onDisconnect={handleDisconnect}
               />
             </Rows>
           </TabPanel>

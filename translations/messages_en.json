@@ -24,8 +24,8 @@
     "description": "Success message shown after all report pages have been added to the Canva document. {count} is replaced by a number (e.g. '12'). 'Share → Download → PDF' refers to menu items in Canva — keep these untranslated or adapt only if Canva's own UI uses different terms in the target language. 'Canva' is a proper name — do not translate."
   },
   "done.title": {
-    "defaultMessage": "✅ Done!",
-    "description": "Title of the success screen shown when all report pages have been generated successfully. The ✅ emoji is intentional — keep it. Keep the tone celebratory and brief."
+    "defaultMessage": "Done!",
+    "description": "Title of the success screen shown when all report pages have been generated successfully. Keep it short and celebratory."
   },
   "error.dateOrder": {
     "defaultMessage": "The from date cannot be later than the to date.",
