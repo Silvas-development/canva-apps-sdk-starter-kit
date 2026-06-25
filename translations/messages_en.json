@@ -1,8 +1,4 @@
 {
-  "+BR/pF": {
-    "defaultMessage": "Could not load levels.",
-    "description": "Error shown when the level options fail to load"
-  },
   "+CmQJJ": {
     "defaultMessage": "Extra page with 6 text boxes",
     "description": "Checkbox label for the extra text boxes page option"
@@ -15,6 +11,10 @@
     "defaultMessage": "Choose a student",
     "description": "Label above the student selection radio group"
   },
+  "/+y3WM": {
+    "defaultMessage": "Choose what you want to generate",
+    "description": "Heading for step 1 of the generate flow"
+  },
   "/HHTfC": {
     "defaultMessage": "From date",
     "description": "Label for the start date input"
@@ -23,14 +23,6 @@
     "defaultMessage": "Cover page (photo page)",
     "description": "Checkbox label for the cover/photo page option"
   },
-  "0Q7pVf": {
-    "defaultMessage": "Connect MijnKleutergroep account",
-    "description": "Heading for the account connection section"
-  },
-  "1NUkjs": {
-    "defaultMessage": "Use this Canva plugin to generate student pages from MijnKleutergroep.",
-    "description": "Short description of what this plugin does, shown in the Support tab"
-  },
   "1h6R44": {
     "defaultMessage": "Set background",
     "description": "Button to open the background picker"
@@ -38,6 +30,10 @@
   "2oT4LR": {
     "defaultMessage": "Choose tapes",
     "description": "Label for the tape picker section in Settings"
+  },
+  "2r0bHp": {
+    "defaultMessage": "From and to date",
+    "description": "Heading for step 2 of the generate flow"
   },
   "3/lfSb": {
     "defaultMessage": "Something went wrong while creating this report. Please try again.",
@@ -54,10 +50,6 @@
   "3kPLB2": {
     "defaultMessage": "Choose tapes",
     "description": "Title of the tape picker modal"
-  },
-  "4LCb9T": {
-    "defaultMessage": "Connected as {email}",
-    "description": "Text shown when an account is connected"
   },
   "5BfP7K": {
     "defaultMessage": "You can select a maximum of 10 tapes.",
@@ -79,17 +71,13 @@
     "defaultMessage": "E.g. Ms. Jansen",
     "description": "Placeholder for the teacher name input, showing an example name"
   },
-  "6KvXk3": {
-    "defaultMessage": "② From and to date",
-    "description": "Heading for step 2 of the generate flow"
-  },
   "6TzQ0k": {
     "defaultMessage": "Text that appears at the bottom of the 1st page in a white box (optional)",
     "description": "Placeholder for the report footer text input"
   },
-  "6gtW/x": {
-    "defaultMessage": "{current} / {total} - {name}",
-    "description": "Progress text shown while generating report pages"
+  "6Y5A+3": {
+    "defaultMessage": "Opacity",
+    "description": "Label for the opacity slider for the card background color"
   },
   "7WAB81": {
     "defaultMessage": "Click to add a note...",
@@ -103,21 +91,21 @@
     "defaultMessage": "Choose student",
     "description": "Heading above the student selection list in the photo modal"
   },
+  "AU0PMu": {
+    "defaultMessage": "Could not load backgrounds. Please try again.",
+    "description": "Error shown when the background images fail to load"
+  },
   "AhSoTP": {
     "defaultMessage": "Development goals of {name}",
     "description": "Page title for the colored level hands page, including student name."
-  },
-  "AmF1Jf": {
-    "defaultMessage": "Could not load backgrounds.",
-    "description": "Error shown when the background images fail to load"
   },
   "AwCVrs": {
     "defaultMessage": "Could not determine the current color — please choose a color manually.",
     "description": "Warning shown when the current level hand color cannot be detected automatically"
   },
-  "D4mnWV": {
-    "defaultMessage": "This selection is not a linked student photo. Select a photo inside a polaroid.",
-    "description": "Error shown when the selected image is not recognized as a student photo"
+  "BgpaaK": {
+    "defaultMessage": "Connect",
+    "description": "Label for the Connect tab"
   },
   "Detv0R": {
     "defaultMessage": "Generate for all students in 1 class",
@@ -126,10 +114,6 @@
   "DinfaA": {
     "defaultMessage": "Login failed. Please try again.",
     "description": "Error shown when the OAuth login flow completes but no access token is returned"
-  },
-  "E2LdoQ": {
-    "defaultMessage": "③ Generate pages",
-    "description": "Heading for step 4 of the generate flow"
   },
   "EDuX3J": {
     "defaultMessage": "Choose a maximum of 10 tapes.",
@@ -143,16 +127,16 @@
     "defaultMessage": "First choose a from and to date.",
     "description": "Error shown when the user has not selected a date range yet"
   },
-  "F3N2kC": {
-    "defaultMessage": "Could not change the color of this level hand.",
-    "description": "Error shown when replacing a level hand image fails"
+  "ExQTJs": {
+    "defaultMessage": "{completedPages} / {totalPages} - {name}",
+    "description": "Progress text shown while generating report pages"
   },
   "Fb5WgZ": {
     "defaultMessage": "Could not replace the selected photo.",
     "description": "Error shown when replacing a student photo fails"
   },
-  "GbCeEE": {
-    "defaultMessage": "Failed for: {names}",
+  "G0pCuI": {
+    "defaultMessage": "Failed for: {names}, please try again or contact MijnKleutergroep support.",
     "description": "Error listing the students whose pages could not be generated"
   },
   "Gk6kQY": {
@@ -166,6 +150,10 @@
   "Hz/+u5": {
     "defaultMessage": "Change level hand color",
     "description": "Title of the level hand color picker modal"
+  },
+  "IhPT2j": {
+    "defaultMessage": "-",
+    "description": "Placeholder shown when an account is connected but no e-mail address is known yet"
   },
   "JFNOat": {
     "defaultMessage": "To date",
@@ -239,9 +227,9 @@
     "defaultMessage": "This Canva document doesn't support new pages. Open the report in a document type that can add pages.",
     "description": "Error shown when the current Canva document type does not support adding pages"
   },
-  "SKaeyP": {
-    "defaultMessage": "Could not load tapes.",
-    "description": "Error shown when the tape images fail to load"
+  "SG2FP9": {
+    "defaultMessage": "Could not load student photos. Please try again.",
+    "description": "Error shown when the student photos fail to load"
   },
   "T18ASA": {
     "defaultMessage": "No students found in this class.",
@@ -267,13 +255,25 @@
     "defaultMessage": "Generate more reports",
     "description": "Button to go back and generate more reports"
   },
+  "Ul4fyn": {
+    "defaultMessage": "This selection is not a linked student photo. Select a photo that is linked to a student in MijnKleutergroep.",
+    "description": "Error shown when the selected image is not recognized as a student photo"
+  },
   "UoVsbz": {
     "defaultMessage": "Set background",
     "description": "Title of the background picker modal"
   },
+  "Ux/hFw": {
+    "defaultMessage": "Could not load tapes. Please try again.",
+    "description": "Error shown when the tape images fail to load"
+  },
   "VLLFgc": {
     "defaultMessage": "Choose a photo for student {id}.",
     "description": "Instructions shown when a specific student is identified"
+  },
+  "VlBy3H": {
+    "defaultMessage": "Could not load levels. Please try again.",
+    "description": "Error shown when the level options fail to load"
   },
   "Vpp7UY": {
     "defaultMessage": "Date of birth: {birthDate}",
@@ -322,6 +322,10 @@
   "aOqNVU": {
     "defaultMessage": "An entire class",
     "description": "Radio option to generate reports for a whole class"
+  },
+  "abw9dH": {
+    "defaultMessage": "Connected MijnKleutergroep account",
+    "description": "Heading for the account connection section when an account is connected"
   },
   "ahN5+e": {
     "defaultMessage": "Card background color",
@@ -383,9 +387,17 @@
     "defaultMessage": "{count} of 10 selected",
     "description": "Shows how many tapes are currently selected out of the maximum of 10"
   },
+  "gPdAKk": {
+    "defaultMessage": "Generate pages",
+    "description": "Heading for step 4 of the generate flow"
+  },
   "gfb4fc": {
     "defaultMessage": "Connect your account first to load backgrounds.",
     "description": "Error shown when trying to open the background picker without a connected account"
+  },
+  "h1TQ3Z": {
+    "defaultMessage": "Connect MijnKleutergroep account",
+    "description": "Heading for the account connection section when no account is connected"
   },
   "hIV56A": {
     "defaultMessage": "Student graphs",
@@ -398,6 +410,10 @@
   "id/GWN": {
     "defaultMessage": "Replace student photo",
     "description": "Title of the student photo replacement modal"
+  },
+  "iwoXdB": {
+    "defaultMessage": "Could not change the color of this level hand. Please try again.",
+    "description": "Error shown when replacing a level hand image fails"
   },
   "jDjaLg": {
     "defaultMessage": "This Canva document is not A4. New pages always take the size of the current document. Resize the document to A4 and refresh the page.",
@@ -427,6 +443,10 @@
     "defaultMessage": "No level hands found for the selected period.",
     "description": "Empty-state message when no colored level hand data exists for the selected date range."
   },
+  "mdK8GR": {
+    "defaultMessage": "No student photos found for this student. Upload a photo in MijnKleutergroep first.",
+    "description": "Shown when a student has no photos available"
+  },
   "meTHjw": {
     "defaultMessage": "Look what I can already do!",
     "description": "Default report title shown as placeholder and fallback"
@@ -438,10 +458,6 @@
   "ndIw4u": {
     "defaultMessage": "Clear",
     "description": "Button to remove the currently selected font and revert to default"
-  },
-  "nzJsJx": {
-    "defaultMessage": "① Choose what you want to generate",
-    "description": "Heading for step 1 of the generate flow"
   },
   "oFW8jf": {
     "defaultMessage": "Create {count} reports →",
@@ -511,20 +527,8 @@
     "defaultMessage": "Licence valid until: {date}",
     "description": "Shows the license validity date in the Support tab"
   },
-  "y3x9XO": {
-    "defaultMessage": "Could not load student photos.",
-    "description": "Error shown when the student photos fail to load"
-  },
-  "yl9Bkg": {
-    "defaultMessage": "Opacity: {value}%",
-    "description": "Shows the current opacity percentage for the card background color"
-  },
   "z2IVRm": {
     "defaultMessage": "Cancel",
     "description": "Button to cancel the page generation process"
-  },
-  "zSsgcu": {
-    "defaultMessage": "Information & Support",
-    "description": "Title of the Support tab"
   }
 }

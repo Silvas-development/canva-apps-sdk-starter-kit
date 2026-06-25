@@ -19,6 +19,7 @@ import {
   MultilineInput,
   RadioGroup,
   Rows,
+  Select,
   Text,
   TextInput,
   LoadingIndicator,
@@ -28,6 +29,7 @@ import {
   TabPanel,
   TabPanels,
   Tabs,
+  XIcon,
 } from "@canva/app-ui-kit";
 import type { ImageRef, FontRef, ImageMimeType } from "@canva/asset";
 
@@ -82,7 +84,7 @@ type NiveauOption = {
 
 type AppState = "idle" | "generating" | "done";
 
-type AppTab = "settings" | "generate" | "support";
+type AppTab = "connect" | "settings" | "generate" | "support";
 
 type PageExtraTexts = {
   coloredLevelHandsTopText: string;
@@ -2897,6 +2899,7 @@ async function generatePageForStudent(
     studentGraphsTopText: "",
     studentGraphsBottomText: "",
   },
+  onPageGenerated?: () => void,
 ): Promise<ImageRef[]> {
   const mappedRefs: ImageRef[] = [];
   let ref: ImageRef | undefined;
@@ -2923,6 +2926,7 @@ async function generatePageForStudent(
         intl,
       );
       mappedRefs.push(placeholderRef);
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -2938,6 +2942,7 @@ async function generatePageForStudent(
       if (extraPhotoRef) {
         mappedRefs.push(extraPhotoRef);
       }
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -2950,11 +2955,13 @@ async function generatePageForStudent(
         bodyFont,
         intl,
       );
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
     if (reportContentOptions.selfDrawing) {
       await generateSelfDrawingPage(student, selectedBackground, intl);
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -2969,6 +2976,7 @@ async function generatePageForStudent(
         extraTexts.coloredLevelHandsBottomText,
         intl,
       );
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -2981,6 +2989,7 @@ async function generatePageForStudent(
         bodyFont,
         intl,
       );
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -2993,6 +3002,7 @@ async function generatePageForStudent(
         bodyFont,
         intl,
       );
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
 
@@ -3007,6 +3017,7 @@ async function generatePageForStudent(
         extraTexts.studentGraphsBottomText,
         intl,
       );
+      onPageGenerated?.();
       await delay(THROTTLE_MS);
     }
   }
@@ -3021,6 +3032,7 @@ async function generatePageForStudent(
       headingFont,
       bodyFont,
     );
+    onPageGenerated?.();
     await delay(THROTTLE_MS);
   }
 
@@ -3034,6 +3046,7 @@ async function generatePageForStudent(
       headingFont,
       bodyFont,
     );
+    onPageGenerated?.();
     await delay(THROTTLE_MS);
   }
 
@@ -3299,15 +3312,11 @@ function SettingsScreen({
           />
         </Text>
         <ColorSelector color={cardBgColor} onChange={onCardBgColorChange} />
-        <Text tone="tertiary">
-          {intl.formatMessage(
-            {
-              defaultMessage: "Opacity: {value}%",
-              description:
-                "Shows the current opacity percentage for the card background color",
-            },
-            { value: cardBgAlpha },
-          )}
+        <Text variant="bold">
+          <FormattedMessage
+            defaultMessage="Opacity"
+            description="Label for the opacity slider for the card background color"
+          />
         </Text>
         <Slider
           min={0}
@@ -3530,7 +3539,7 @@ function GenerateScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            defaultMessage="① Choose what you want to generate"
+            defaultMessage="Choose what you want to generate"
             description="Heading for step 1 of the generate flow"
           />
         </Text>
@@ -3582,7 +3591,8 @@ function GenerateScreen({
                 />
               </Alert>
             ) : (
-              <RadioGroup
+              <Select
+                stretch
                 value={selectedGroup}
                 onChange={setSelectedGroup}
                 options={groups.map((g) => ({
@@ -3615,7 +3625,8 @@ function GenerateScreen({
                 />
               </Alert>
             ) : (
-              <RadioGroup
+              <Select
+                stretch
                 value={selectedStudentId}
                 onChange={setSelectedStudentId}
                 options={allStudents.map((student) => ({
@@ -3633,7 +3644,7 @@ function GenerateScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            defaultMessage="② From and to date"
+            defaultMessage="From and to date"
             description="Heading for step 2 of the generate flow"
           />
         </Text>
@@ -3846,7 +3857,7 @@ function GenerateScreen({
       <Rows spacing="1u">
         <Text variant="bold">
           <FormattedMessage
-            defaultMessage="③ Generate pages"
+            defaultMessage="Generate pages"
             description="Heading for step 4 of the generate flow"
           />
         </Text>
@@ -3962,26 +3973,18 @@ function SupportScreen({
   return (
     <Rows spacing="3u">
       <Rows spacing="1u">
-        <Text variant="bold" size="large">
-          <FormattedMessage
-            defaultMessage="Information & Support"
-            description="Title of the Support tab"
-          />
-        </Text>
-        <Text>
-          <FormattedMessage
-            defaultMessage="Use this Canva plugin to generate student pages from MijnKleutergroep."
-            description="Short description of what this plugin does, shown in the Support tab"
-          />
-        </Text>
-      </Rows>
-
-      <Rows spacing="1u">
         <Text variant="bold">
-          <FormattedMessage
-            defaultMessage="Connect MijnKleutergroep account"
-            description="Heading for the account connection section"
-          />
+          {isAuthenticated ? (
+            <FormattedMessage
+              defaultMessage="Connected MijnKleutergroep account"
+              description="Heading for the account connection section when an account is connected"
+            />
+          ) : (
+            <FormattedMessage
+              defaultMessage="Connect MijnKleutergroep account"
+              description="Heading for the account connection section when no account is connected"
+            />
+          )}
         </Text>
         {!isAuthenticated ? (
           <>
@@ -4001,13 +4004,12 @@ function SupportScreen({
         ) : (
           <>
             <Text tone="tertiary">
-              {intl.formatMessage(
-                {
-                  defaultMessage: "Connected as {email}",
-                  description: "Text shown when an account is connected",
-                },
-                { email: connectedEmail || "-" },
-              )}
+              {connectedEmail ||
+                intl.formatMessage({
+                  defaultMessage: "-",
+                  description:
+                    "Placeholder shown when an account is connected but no e-mail address is known yet",
+                })}
             </Text>
             {licenseValidUntil != null && (
               <Alert tone={licenseExpired ? "warn" : "positive"}>
@@ -4068,10 +4070,17 @@ function GeneratingScreen({
   onCancel: () => void;
 }) {
   const [current, setCurrent] = useState(0);
+  const [completedPages, setCompletedPages] = useState(0);
   const [error, setError] = useState("");
   const [failed, setFailed] = useState<string[]>([]);
   const cancelled = React.useRef(false);
   const intl = useIntl();
+
+  const pagesPerStudent = Math.max(
+    1,
+    Object.values(reportContentOptions).filter(Boolean).length,
+  );
+  const totalPages = students.length * pagesPerStudent;
 
   useEffect(() => {
     let i = 0;
@@ -4118,6 +4127,7 @@ function GeneratingScreen({
             bodyFont,
             intl,
             extraTexts,
+            () => setCompletedPages((p) => p + 1),
           );
           refs.forEach((ref) => onStudentPhotoMapped(student.id, ref));
           onStudentNameMapped(student.id, student.name);
@@ -4158,7 +4168,8 @@ function GeneratingScreen({
     };
   }, []);
 
-  const pct = Math.round((current / students.length) * 100);
+  const pct =
+    totalPages > 0 ? Math.round((completedPages / totalPages) * 100) : 0;
   const currentStudent = students[Math.min(current, students.length - 1)];
 
   return (
@@ -4180,12 +4191,12 @@ function GeneratingScreen({
               "Accessible label for the progress bar while generating report pages.",
           })}
           aria-valuemin={0}
-          aria-valuemax={students.length}
-          aria-valuenow={Math.min(current, students.length)}
+          aria-valuemax={totalPages}
+          aria-valuenow={Math.min(completedPages, totalPages)}
           style={{
             height: 8,
             borderRadius: 4,
-            background: "var(--ui-kit-color-surface-subtle)",
+            background: "var(--ui-kit-color-ui-neutral-subtle-bg)",
             overflow: "hidden",
           }}
         >
@@ -4193,7 +4204,7 @@ function GeneratingScreen({
             style={{
               height: "100%",
               width: `${pct}%`,
-              background: "var(--ui-kit-color-brand)",
+              background: "var(--ui-kit-color-action-primary-bg)",
               borderRadius: 4,
               transition: "width 0.3s ease",
             }}
@@ -4202,12 +4213,12 @@ function GeneratingScreen({
         <Text tone="tertiary">
           {intl.formatMessage(
             {
-              defaultMessage: "{current} / {total} - {name}",
+              defaultMessage: "{completedPages} / {totalPages} - {name}",
               description: "Progress text shown while generating report pages",
             },
             {
-              current,
-              total: students.length,
+              completedPages: Math.min(completedPages, totalPages),
+              totalPages,
               name: currentStudent?.name ?? "",
             },
           )}
@@ -4219,7 +4230,8 @@ function GeneratingScreen({
           <Text tone="critical">
             {intl.formatMessage(
               {
-                defaultMessage: "Failed for: {names}",
+                defaultMessage:
+                  "Failed for: {names}, please try again or contact MijnKleutergroep support.",
                 description:
                   "Error listing the students whose pages could not be generated",
               },
@@ -4647,7 +4659,7 @@ export const App = () => {
     } catch {
       setBackgroundsError(
         intl.formatMessage({
-          defaultMessage: "Could not load backgrounds.",
+          defaultMessage: "Could not load backgrounds. Please try again.",
           description: "Error shown when the background images fail to load",
         }),
       );
@@ -4690,7 +4702,7 @@ export const App = () => {
     } catch {
       setTapesError(
         intl.formatMessage({
-          defaultMessage: "Could not load tapes.",
+          defaultMessage: "Could not load tapes. Please try again.",
           description: "Error shown when the tape images fail to load",
         }),
       );
@@ -4835,7 +4847,7 @@ export const App = () => {
         setStudentPhotosError(
           intl.formatMessage({
             defaultMessage:
-              "This selection is not a linked student photo. Select a photo inside a polaroid.",
+              "This selection is not a linked student photo. Select a photo that is linked to a student in MijnKleutergroep.",
             description:
               "Error shown when the selected image is not recognized as a student photo",
           }),
@@ -4861,7 +4873,7 @@ export const App = () => {
       setSelectedStudentId("");
       setStudentPhotosError(
         intl.formatMessage({
-          defaultMessage: "Could not load student photos.",
+          defaultMessage: "Could not load student photos. Please try again.",
           description: "Error shown when the student photos fail to load",
         }),
       );
@@ -4886,7 +4898,8 @@ export const App = () => {
       if (photos.length === 0) {
         setStudentPhotosError(
           intl.formatMessage({
-            defaultMessage: "No student photos found for this student.",
+            defaultMessage:
+              "No student photos found for this student. Upload a photo in MijnKleutergroep first.",
             description: "Shown when a student has no photos available",
           }),
         );
@@ -4896,7 +4909,7 @@ export const App = () => {
       setSelectedStudentId("");
       setStudentPhotosError(
         intl.formatMessage({
-          defaultMessage: "Could not load student photos.",
+          defaultMessage: "Could not load student photos. Please try again.",
           description: "Error shown when the student photos fail to load",
         }),
       );
@@ -5021,7 +5034,7 @@ export const App = () => {
       setSelectedNiveauColor("");
       setNiveauOptionsError(
         intl.formatMessage({
-          defaultMessage: "Could not load levels.",
+          defaultMessage: "Could not load levels. Please try again.",
           description: "Error shown when the level options fail to load",
         }),
       );
@@ -5075,7 +5088,8 @@ export const App = () => {
     } catch {
       setNiveauOptionsError(
         intl.formatMessage({
-          defaultMessage: "Could not change the color of this level hand.",
+          defaultMessage:
+            "Could not change the color of this level hand. Please try again.",
           description: "Error shown when replacing a level hand image fails",
         }),
       );
@@ -5249,7 +5263,7 @@ export const App = () => {
 
   if (!isAuthenticated) {
     return (
-      <Box padding="2u">
+      <Box paddingTop="2u" paddingEnd="2u" paddingBottom="2u">
         <SupportScreen
           isAuthenticated={isAuthenticated}
           connectedEmail={connectedEmail}
@@ -5265,9 +5279,25 @@ export const App = () => {
       activeId={activeTab}
       onSelect={(value) => setActiveTab(value as AppTab)}
     >
-      <Box padding="2u" display="flex" flexDirection="column">
+      <Box
+        paddingTop="2u"
+        paddingEnd="2u"
+        paddingBottom="2u"
+        display="flex"
+        flexDirection="column"
+      >
         <Box paddingBottom="1u">
           <TabList>
+            <Tab
+              id="connect"
+              active={activeTab === "connect"}
+              onClick={() => setActiveTab("connect")}
+            >
+              {intl.formatMessage({
+                defaultMessage: "Connect",
+                description: "Label for the Connect tab",
+              })}
+            </Tab>
             <Tab
               id="settings"
               active={activeTab === "settings"}
@@ -5302,6 +5332,14 @@ export const App = () => {
         </Box>
 
         <TabPanels>
+          <TabPanel id="connect">
+            <SupportScreen
+              isAuthenticated={isAuthenticated}
+              connectedEmail={connectedEmail}
+              licenseValidUntil={licenseValidUntil}
+              onLogin={handleLogin}
+            />
+          </TabPanel>
           <TabPanel id="settings">
             <SettingsScreen
               teacherName={teacherName}
@@ -5414,12 +5452,6 @@ export const App = () => {
                   })}
                 </Button>
               </Rows>
-              <SupportScreen
-                isAuthenticated={isAuthenticated}
-                connectedEmail={connectedEmail}
-                licenseValidUntil={licenseValidUntil}
-                onLogin={handleLogin}
-              />
             </Rows>
           </TabPanel>
         </TabPanels>
@@ -5440,6 +5472,7 @@ export const App = () => {
           >
             <div
               style={{
+                position: "relative",
                 width: "100%",
                 maxWidth: 720,
                 maxHeight: "80vh",
@@ -5451,6 +5484,18 @@ export const App = () => {
                 padding: 20,
               }}
             >
+              <div style={{ position: "absolute", top: 12, right: 12 }}>
+                <Button
+                  variant="tertiary"
+                  size="small"
+                  icon={XIcon}
+                  ariaLabel={intl.formatMessage({
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
+                  onClick={() => setIsBackgroundModalOpen(false)}
+                />
+              </div>
               <Rows spacing="2u">
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
@@ -5761,6 +5806,7 @@ export const App = () => {
           >
             <div
               style={{
+                position: "relative",
                 width: "100%",
                 maxWidth: 720,
                 maxHeight: "80vh",
@@ -5772,6 +5818,18 @@ export const App = () => {
                 padding: 20,
               }}
             >
+              <div style={{ position: "absolute", top: 12, right: 12 }}>
+                <Button
+                  variant="tertiary"
+                  size="small"
+                  icon={XIcon}
+                  ariaLabel={intl.formatMessage({
+                    defaultMessage: "Close",
+                    description: "Button to close a modal dialog",
+                  })}
+                  onClick={() => setIsTapeModalOpen(false)}
+                />
+              </div>
               <Rows spacing="2u">
                 <Rows spacing="1u">
                   <Text variant="bold" size="large">
