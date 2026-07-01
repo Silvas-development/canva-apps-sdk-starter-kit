@@ -23,6 +23,9 @@ import {
   Text,
   TextInput,
   LoadingIndicator,
+  ProgressBar,
+  Placeholder,
+  TextPlaceholder,
   Box,
   Tab,
   TabList,
@@ -3658,7 +3661,7 @@ function GenerateScreen({
           <label style={{ display: "grid", gap: 6 }}>
             <Text variant="bold">
               <FormattedMessage
-                defaultMessage="From date"
+                defaultMessage="From"
                 description="Label for the start date input"
               />
             </Text>
@@ -3674,7 +3677,7 @@ function GenerateScreen({
                 })
               }
               ariaLabel={intl.formatMessage({
-                defaultMessage: "From date",
+                defaultMessage: "From",
                 description: "Label for the start date input",
               })}
             />
@@ -3682,7 +3685,7 @@ function GenerateScreen({
           <label style={{ display: "grid", gap: 6 }}>
             <Text variant="bold">
               <FormattedMessage
-                defaultMessage="To date"
+                defaultMessage="To"
                 description="Label for the end date input"
               />
             </Text>
@@ -3698,7 +3701,7 @@ function GenerateScreen({
                 })
               }
               ariaLabel={intl.formatMessage({
-                defaultMessage: "To date",
+                defaultMessage: "To",
                 description: "Label for the end date input",
               })}
             />
@@ -4183,33 +4186,14 @@ function GeneratingScreen({
 
       {/* Progress bar */}
       <Rows spacing="1u">
-        <div
-          role="progressbar"
-          aria-label={intl.formatMessage({
+        <ProgressBar
+          value={pct}
+          ariaLabel={intl.formatMessage({
             defaultMessage: "Report generation progress",
             description:
               "Accessible label for the progress bar while generating report pages.",
           })}
-          aria-valuemin={0}
-          aria-valuemax={totalPages}
-          aria-valuenow={Math.min(completedPages, totalPages)}
-          style={{
-            height: 8,
-            borderRadius: 4,
-            background: "var(--ui-kit-color-ui-neutral-subtle-bg)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${pct}%`,
-              background: "var(--ui-kit-color-action-primary-bg)",
-              borderRadius: 4,
-              transition: "width 0.3s ease",
-            }}
-          />
-        </div>
+        />
         <Text tone="tertiary">
           {intl.formatMessage(
             {
@@ -5289,16 +5273,6 @@ export const App = () => {
         <Box paddingBottom="1u">
           <TabList>
             <Tab
-              id="connect"
-              active={activeTab === "connect"}
-              onClick={() => setActiveTab("connect")}
-            >
-              {intl.formatMessage({
-                defaultMessage: "Connect",
-                description: "Label for the Connect tab",
-              })}
-            </Tab>
-            <Tab
               id="settings"
               active={activeTab === "settings"}
               onClick={() => setActiveTab("settings")}
@@ -5328,18 +5302,20 @@ export const App = () => {
                 description: "Label for the Customize tab",
               })}
             </Tab>
+            <Tab
+              id="connect"
+              active={activeTab === "connect"}
+              onClick={() => setActiveTab("connect")}
+            >
+              {intl.formatMessage({
+                defaultMessage: "Account",
+                description: "Label for the Account tab",
+              })}
+            </Tab>
           </TabList>
         </Box>
 
         <TabPanels>
-          <TabPanel id="connect">
-            <SupportScreen
-              isAuthenticated={isAuthenticated}
-              connectedEmail={connectedEmail}
-              licenseValidUntil={licenseValidUntil}
-              onLogin={handleLogin}
-            />
-          </TabPanel>
           <TabPanel id="settings">
             <SettingsScreen
               teacherName={teacherName}
@@ -5454,6 +5430,14 @@ export const App = () => {
               </Rows>
             </Rows>
           </TabPanel>
+          <TabPanel id="connect">
+            <SupportScreen
+              isAuthenticated={isAuthenticated}
+              connectedEmail={connectedEmail}
+              licenseValidUntil={licenseValidUntil}
+              onLogin={handleLogin}
+            />
+          </TabPanel>
         </TabPanels>
 
         {isBackgroundModalOpen && (
@@ -5513,7 +5497,18 @@ export const App = () => {
                 </Rows>
 
                 {backgroundsLoading ? (
-                  <LoadingIndicator />
+                  <Grid columns={2} spacing="1.5u">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Box key={index}>
+                        <Rows spacing="1u">
+                          <div style={{ aspectRatio: "210 / 297" }}>
+                            <Placeholder shape="rectangle" />
+                          </div>
+                          <TextPlaceholder size="medium" />
+                        </Rows>
+                      </Box>
+                    ))}
+                  </Grid>
                 ) : backgroundsError ? (
                   <Alert tone="critical">{backgroundsError}</Alert>
                 ) : (
@@ -5847,7 +5842,18 @@ export const App = () => {
                 </Rows>
 
                 {tapesLoading ? (
-                  <LoadingIndicator />
+                  <Grid columns={2} spacing="1.5u">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Box key={index}>
+                        <Rows spacing="1u">
+                          <div style={{ aspectRatio: "132 / 36" }}>
+                            <Placeholder shape="rectangle" />
+                          </div>
+                          <TextPlaceholder size="medium" />
+                        </Rows>
+                      </Box>
+                    ))}
+                  </Grid>
                 ) : tapesError ? (
                   <Alert tone="critical">{tapesError}</Alert>
                 ) : (

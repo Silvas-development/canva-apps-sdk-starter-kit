@@ -15,10 +15,6 @@
     "defaultMessage": "Choose what you want to generate",
     "description": "Heading for step 1 of the generate flow"
   },
-  "/HHTfC": {
-    "defaultMessage": "From date",
-    "description": "Label for the start date input"
-  },
   "/L8wJf": {
     "defaultMessage": "Cover page (photo page)",
     "description": "Checkbox label for the cover/photo page option"
@@ -50,6 +46,10 @@
   "3kPLB2": {
     "defaultMessage": "Choose tapes",
     "description": "Title of the tape picker modal"
+  },
+  "58kIX0": {
+    "defaultMessage": "To",
+    "description": "Label for the end date input"
   },
   "5BfP7K": {
     "defaultMessage": "You can select a maximum of 10 tapes.",
@@ -103,10 +103,6 @@
     "defaultMessage": "Could not determine the current color — please choose a color manually.",
     "description": "Warning shown when the current level hand color cannot be detected automatically"
   },
-  "BgpaaK": {
-    "defaultMessage": "Connect",
-    "description": "Label for the Connect tab"
-  },
   "Detv0R": {
     "defaultMessage": "Generate for all students in 1 class",
     "description": "Description for the 'entire class' radio option"
@@ -139,6 +135,10 @@
     "defaultMessage": "Failed for: {names}, please try again or contact MijnKleutergroep support.",
     "description": "Error listing the students whose pages could not be generated"
   },
+  "GHNKoM": {
+    "defaultMessage": "Account",
+    "description": "Label for the Account tab"
+  },
   "Gk6kQY": {
     "defaultMessage": "Self-drawing",
     "description": "Checkbox label for the self-drawing page option"
@@ -154,10 +154,6 @@
   "IhPT2j": {
     "defaultMessage": "-",
     "description": "Placeholder shown when an account is connected but no e-mail address is known yet"
-  },
-  "JFNOat": {
-    "defaultMessage": "To date",
-    "description": "Label for the end date input"
   },
   "JRHzWL": {
     "defaultMessage": "Generate",
@@ -406,6 +402,10 @@
   "hMIoN4": {
     "defaultMessage": "Growth charts of {name}",
     "description": "Page title for the student growth charts page."
+  },
+  "i1MgPG": {
+    "defaultMessage": "From",
+    "description": "Label for the start date input"
   },
   "id/GWN": {
     "defaultMessage": "Replace student photo",
