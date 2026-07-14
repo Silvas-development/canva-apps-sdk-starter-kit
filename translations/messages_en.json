@@ -124,7 +124,7 @@
     "description": "Error shown when the user has not selected a date range yet"
   },
   "ExQTJs": {
-    "defaultMessage": "{completedPages} / {totalPages} - {name}",
+    "defaultMessage": "Working on composing report {current} of {total} for {name}",
     "description": "Progress text shown while generating report pages"
   },
   "Fb5WgZ": {
@@ -192,7 +192,7 @@
     "description": "Shows the number of students in a class"
   },
   "Lqifre": {
-    "defaultMessage": "Color of the cards and text blocks on generated pages. (default: white)",
+    "defaultMessage": "Color of the cards and text blocks on generated pages.",
     "description": "Description for the card background color setting"
   },
   "OAwdqy": {

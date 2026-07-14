@@ -25,7 +25,6 @@ import {
   LoadingIndicator,
   ProgressBar,
   Placeholder,
-  TextPlaceholder,
   Box,
   Tab,
   TabList,
@@ -3310,7 +3309,7 @@ function SettingsScreen({
         </Text>
         <Text tone="tertiary">
           <FormattedMessage
-            defaultMessage="Color of the cards and text blocks on generated pages. (default: white)"
+            defaultMessage="Color of the cards and text blocks on generated pages."
             description="Description for the card background color setting"
           />
         </Text>
@@ -4197,12 +4196,13 @@ function GeneratingScreen({
         <Text tone="tertiary">
           {intl.formatMessage(
             {
-              defaultMessage: "{completedPages} / {totalPages} - {name}",
+              defaultMessage:
+                "Working on composing report {current} of {total} for {name}",
               description: "Progress text shown while generating report pages",
             },
             {
-              completedPages: Math.min(completedPages, totalPages),
-              totalPages,
+              current: Math.min(current + 1, students.length),
+              total: students.length,
               name: currentStudent?.name ?? "",
             },
           )}
@@ -5500,12 +5500,9 @@ export const App = () => {
                   <Grid columns={2} spacing="1.5u">
                     {Array.from({ length: 6 }).map((_, index) => (
                       <Box key={index}>
-                        <Rows spacing="1u">
-                          <div style={{ aspectRatio: "210 / 297" }}>
-                            <Placeholder shape="rectangle" />
-                          </div>
-                          <TextPlaceholder size="medium" />
-                        </Rows>
+                        <div style={{ aspectRatio: "210 / 297" }}>
+                          <Placeholder shape="rectangle" />
+                        </div>
                       </Box>
                     ))}
                   </Grid>
@@ -5515,18 +5512,15 @@ export const App = () => {
                   <Grid columns={2} spacing="1.5u">
                     {backgroundOptions.map((background) => (
                       <Box key={background.id}>
-                        <Rows spacing="1u">
-                          <ImageCard
-                            ariaLabel={background.name}
-                            alt={background.name}
-                            thumbnailUrl={background.url}
-                            onClick={() => handleBackgroundSelect(background)}
-                            selectable={true}
-                            selected={selectedBackground?.id === background.id}
-                            borderRadius="standard"
-                          />
-                          <Text>{background.name}</Text>
-                        </Rows>
+                        <ImageCard
+                          ariaLabel={background.name}
+                          alt={background.name}
+                          thumbnailUrl={background.url}
+                          onClick={() => handleBackgroundSelect(background)}
+                          selectable={true}
+                          selected={selectedBackground?.id === background.id}
+                          borderRadius="standard"
+                        />
                       </Box>
                     ))}
                   </Grid>
@@ -5845,12 +5839,9 @@ export const App = () => {
                   <Grid columns={2} spacing="1.5u">
                     {Array.from({ length: 6 }).map((_, index) => (
                       <Box key={index}>
-                        <Rows spacing="1u">
-                          <div style={{ aspectRatio: "132 / 36" }}>
-                            <Placeholder shape="rectangle" />
-                          </div>
-                          <TextPlaceholder size="medium" />
-                        </Rows>
+                        <div style={{ aspectRatio: "132 / 36" }}>
+                          <Placeholder shape="rectangle" />
+                        </div>
                       </Box>
                     ))}
                   </Grid>
@@ -5862,20 +5853,17 @@ export const App = () => {
                     <Grid columns={2} spacing="1.5u">
                       {tapeOptions.map((tape) => (
                         <Box key={tape.id}>
-                          <Rows spacing="1u">
-                            <ImageCard
-                              ariaLabel={tape.name}
-                              alt={tape.name}
-                              thumbnailUrl={tape.url}
-                              onClick={() => handleTapeToggle(tape)}
-                              selectable={true}
-                              selected={selectedTapes.some(
-                                (item) => item.id === tape.id,
-                              )}
-                              borderRadius="standard"
-                            />
-                            <Text>{tape.name}</Text>
-                          </Rows>
+                          <ImageCard
+                            ariaLabel={tape.name}
+                            alt={tape.name}
+                            thumbnailUrl={tape.url}
+                            onClick={() => handleTapeToggle(tape)}
+                            selectable={true}
+                            selected={selectedTapes.some(
+                              (item) => item.id === tape.id,
+                            )}
+                            borderRadius="standard"
+                          />
                         </Box>
                       ))}
                     </Grid>
