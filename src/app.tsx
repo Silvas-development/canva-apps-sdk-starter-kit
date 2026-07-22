@@ -4171,7 +4171,9 @@ function GeneratingScreen({
   }, []);
 
   const pct =
-    totalPages > 0 ? Math.round((completedPages / totalPages) * 100) : 0;
+    totalPages > 0
+      ? Math.max(4, Math.round((completedPages / totalPages) * 100))
+      : 0;
   const currentStudent = students[Math.min(current, students.length - 1)];
 
   return (

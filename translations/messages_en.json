@@ -123,7 +123,7 @@
     "defaultMessage": "First choose a from and to date.",
     "description": "Error shown when the user has not selected a date range yet"
   },
-  "ExQTJs": {
+  "OoJ6Ng": {
     "defaultMessage": "Working on composing report {current} of {total} for {name}",
     "description": "Progress text shown while generating report pages"
   },
@@ -191,7 +191,7 @@
     "defaultMessage": "{count} students",
     "description": "Shows the number of students in a class"
   },
-  "Lqifre": {
+  "g0dWZT": {
     "defaultMessage": "Color of the cards and text blocks on generated pages.",
     "description": "Description for the card background color setting"
   },
