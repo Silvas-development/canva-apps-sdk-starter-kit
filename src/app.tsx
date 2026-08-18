@@ -65,12 +65,14 @@ type BackgroundOption = {
   id: string;
   name: string;
   url: string;
+  thumb?: string;
 };
 
 type TapeOption = {
   id: string;
   name: string;
   url: string;
+  thumb?: string;
 };
 
 type StudentPhoto = {
@@ -4367,6 +4369,9 @@ export const App = () => {
   >([]);
   const [backgroundsLoading, setBackgroundsLoading] = useState(false);
   const [backgroundsError, setBackgroundsError] = useState("");
+  const [backgroundThumbsLoaded, setBackgroundThumbsLoaded] = useState<
+    Set<string>
+  >(new Set());
   const [isTapeModalOpen, setIsTapeModalOpen] = useState(false);
   const [tapeOptions, setTapeOptions] = useState<TapeOption[]>([]);
   const [selectedTapes, setSelectedTapes] = useState<TapeOption[]>(() => {
@@ -4402,6 +4407,39 @@ export const App = () => {
   const [tapesLoading, setTapesLoading] = useState(false);
   const [tapesError, setTapesError] = useState("");
   const [tapesWarning, setTapesWarning] = useState("");
+  const [tapeThumbsLoaded, setTapeThumbsLoaded] = useState<Set<string>>(
+    new Set(),
+  );
+  const backgroundImagesReady =
+    backgroundOptions.length === 0 ||
+    backgroundOptions.every((background) =>
+      backgroundThumbsLoaded.has(background.id),
+    );
+  const tapeImagesReady =
+    tapeOptions.length === 0 ||
+    tapeOptions.every((tape) => tapeThumbsLoaded.has(tape.id));
+  const handleBackgroundThumbLoad = (
+    id: string,
+    state: "loading" | "loaded" | "error" | "none",
+  ) => {
+    if (state !== "loaded" && state !== "error") {
+      return;
+    }
+    setBackgroundThumbsLoaded((prev) =>
+      prev.has(id) ? prev : new Set(prev).add(id),
+    );
+  };
+  const handleTapeThumbLoad = (
+    id: string,
+    state: "loading" | "loaded" | "error" | "none",
+  ) => {
+    if (state !== "loaded" && state !== "error") {
+      return;
+    }
+    setTapeThumbsLoaded((prev) =>
+      prev.has(id) ? prev : new Set(prev).add(id),
+    );
+  };
   const [headingFont, setHeadingFont] = useState<SelectedFont | null>(() =>
     getStoredSelectedFont(HEADING_FONT_STORAGE_KEY),
   );
@@ -4641,6 +4679,7 @@ export const App = () => {
 
     try {
       const options = await fetchBackgrounds();
+      setBackgroundThumbsLoaded(new Set());
       setBackgroundOptions(options);
     } catch {
       setBackgroundsError(
@@ -4684,6 +4723,7 @@ export const App = () => {
 
     try {
       const options = await fetchTapes();
+      setTapeThumbsLoaded(new Set());
       setTapeOptions(options);
     } catch {
       setTapesError(
@@ -5247,6 +5287,42 @@ export const App = () => {
   const handleDone = () => setAppState("done");
   const handleBack = () => setAppState("idle");
 
+  if (appState === "generating" && generatePayload) {
+    // Full-view loading state: hides the tabs and every other control so the
+    // user cannot interact with anything else while generation is in progress.
+    return (
+      <Box paddingTop="2u" paddingEnd="2u" paddingBottom="2u">
+        <GeneratingScreen
+          students={generatePayload.students}
+          templateId={generatePayload.templateId}
+          reportDateRange={reportDateRange}
+          teacherName={teacherName}
+          reportTitle={
+            reportTitle.trim() ||
+            intl.formatMessage({
+              defaultMessage: "Look what I can already do!",
+              description:
+                "Default report title shown as placeholder and fallback",
+            })
+          }
+          reportFooter={reportFooter}
+          selectedTapes={selectedTapes}
+          reportContentOptions={reportContentOptions}
+          extraTexts={generatePayload.extraTexts}
+          selectedBackground={selectedBackground}
+          headingFont={headingFont}
+          bodyFont={bodyFont}
+          cardBgColor={cardBgColor}
+          cardBgAlpha={cardBgAlpha}
+          onStudentPhotoMapped={rememberStudentPhotoRef}
+          onStudentNameMapped={rememberStudentNameId}
+          onDone={handleDone}
+          onCancel={handleBack}
+        />
+      </Box>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <Box paddingTop="2u" paddingEnd="2u" paddingBottom="2u">
@@ -5344,35 +5420,7 @@ export const App = () => {
             />
           </TabPanel>
           <TabPanel id="generate">
-            {appState === "generating" && generatePayload ? (
-              <GeneratingScreen
-                students={generatePayload.students}
-                templateId={generatePayload.templateId}
-                reportDateRange={reportDateRange}
-                teacherName={teacherName}
-                reportTitle={
-                  reportTitle.trim() ||
-                  intl.formatMessage({
-                    defaultMessage: "Look what I can already do!",
-                    description:
-                      "Default report title shown as placeholder and fallback",
-                  })
-                }
-                reportFooter={reportFooter}
-                selectedTapes={selectedTapes}
-                reportContentOptions={reportContentOptions}
-                extraTexts={generatePayload.extraTexts}
-                selectedBackground={selectedBackground}
-                headingFont={headingFont}
-                bodyFont={bodyFont}
-                cardBgColor={cardBgColor}
-                cardBgAlpha={cardBgAlpha}
-                onStudentPhotoMapped={rememberStudentPhotoRef}
-                onStudentNameMapped={rememberStudentNameId}
-                onDone={handleDone}
-                onCancel={handleBack}
-              />
-            ) : appState === "done" && generatePayload ? (
+            {appState === "done" && generatePayload ? (
               <DoneScreen
                 count={generatePayload.students.length}
                 onBack={handleBack}
@@ -5498,34 +5546,53 @@ export const App = () => {
                   </Text>
                 </Rows>
 
-                {backgroundsLoading ? (
-                  <Grid columns={2} spacing="1.5u">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <Box key={index}>
-                        <div style={{ aspectRatio: "210 / 297" }}>
-                          <Placeholder shape="rectangle" />
-                        </div>
-                      </Box>
-                    ))}
-                  </Grid>
-                ) : backgroundsError ? (
+                {backgroundsError ? (
                   <Alert tone="critical">{backgroundsError}</Alert>
                 ) : (
-                  <Grid columns={2} spacing="1.5u">
-                    {backgroundOptions.map((background) => (
-                      <Box key={background.id}>
-                        <ImageCard
-                          ariaLabel={background.name}
-                          alt={background.name}
-                          thumbnailUrl={background.url}
-                          onClick={() => handleBackgroundSelect(background)}
-                          selectable={true}
-                          selected={selectedBackground?.id === background.id}
-                          borderRadius="standard"
-                        />
+                  <>
+                    {(backgroundsLoading || !backgroundImagesReady) && (
+                      <Grid columns={2} spacing="1.5u">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <Box key={index}>
+                            <div style={{ aspectRatio: "210 / 297" }}>
+                              <Placeholder shape="rectangle" />
+                            </div>
+                          </Box>
+                        ))}
+                      </Grid>
+                    )}
+                    {!backgroundsLoading && (
+                      <Box display={backgroundImagesReady ? "block" : "none"}>
+                        <Grid columns={2} spacing="1.5u">
+                          {backgroundOptions.map((background) => (
+                            <Box key={background.id}>
+                              <ImageCard
+                                ariaLabel={background.name}
+                                alt={background.name}
+                                thumbnailUrl={
+                                  background.thumb || background.url
+                                }
+                                onClick={() =>
+                                  handleBackgroundSelect(background)
+                                }
+                                selectable={true}
+                                selected={
+                                  selectedBackground?.id === background.id
+                                }
+                                borderRadius="standard"
+                                onImageLoad={(state) =>
+                                  handleBackgroundThumbLoad(
+                                    background.id,
+                                    state,
+                                  )
+                                }
+                              />
+                            </Box>
+                          ))}
+                        </Grid>
                       </Box>
-                    ))}
-                  </Grid>
+                    )}
+                  </>
                 )}
 
                 <Button
@@ -5837,38 +5904,48 @@ export const App = () => {
                   </Text>
                 </Rows>
 
-                {tapesLoading ? (
-                  <Grid columns={2} spacing="1.5u">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <Box key={index}>
-                        <div style={{ aspectRatio: "132 / 36" }}>
-                          <Placeholder shape="rectangle" />
-                        </div>
-                      </Box>
-                    ))}
-                  </Grid>
-                ) : tapesError ? (
+                {tapesError ? (
                   <Alert tone="critical">{tapesError}</Alert>
                 ) : (
                   <Rows spacing="1u">
                     {tapesWarning && <Alert tone="warn">{tapesWarning}</Alert>}
-                    <Grid columns={2} spacing="1.5u">
-                      {tapeOptions.map((tape) => (
-                        <Box key={tape.id}>
-                          <ImageCard
-                            ariaLabel={tape.name}
-                            alt={tape.name}
-                            thumbnailUrl={tape.url}
-                            onClick={() => handleTapeToggle(tape)}
-                            selectable={true}
-                            selected={selectedTapes.some(
-                              (item) => item.id === tape.id,
-                            )}
-                            borderRadius="standard"
-                          />
-                        </Box>
-                      ))}
-                    </Grid>
+                    {(tapesLoading || !tapeImagesReady) && (
+                      <Grid columns={2} spacing="1.5u">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <Box key={index}>
+                            <div style={{ aspectRatio: "132 / 36" }}>
+                              <Placeholder shape="rectangle" />
+                            </div>
+                          </Box>
+                        ))}
+                      </Grid>
+                    )}
+                    <Box
+                      display={
+                        !tapesLoading && tapeImagesReady ? "block" : "none"
+                      }
+                    >
+                      <Grid columns={2} spacing="1.5u">
+                        {tapeOptions.map((tape) => (
+                          <Box key={tape.id}>
+                            <ImageCard
+                              ariaLabel={tape.name}
+                              alt={tape.name}
+                              thumbnailUrl={tape.thumb || tape.url}
+                              onClick={() => handleTapeToggle(tape)}
+                              selectable={true}
+                              selected={selectedTapes.some(
+                                (item) => item.id === tape.id,
+                              )}
+                              borderRadius="standard"
+                              onImageLoad={(state) =>
+                                handleTapeThumbLoad(tape.id, state)
+                              }
+                            />
+                          </Box>
+                        ))}
+                      </Grid>
+                    </Box>
                   </Rows>
                 )}
 
