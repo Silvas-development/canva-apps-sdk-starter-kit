@@ -51,7 +51,7 @@ type Student = {
   name: string;
   birthDate: string;
   group: string;
-  photoUrl: string;
+  photoUrl: string | null;
   observations: Observation[];
 };
 
@@ -2911,7 +2911,7 @@ async function generatePageForStudent(
   if (templateId === "rapport") {
     if (reportContentOptions.photoPage) {
       console.log("[Genereren] Stap 1: uploadPhoto", student.photoUrl);
-      ref = await uploadPhoto(student.photoUrl);
+      ref = await uploadPhoto(student.photoUrl || createPlaceholderDataUrl());
       console.log("[Genereren] Stap 1 OK, ref:", ref);
       mappedRefs.push(ref);
       console.log("[Genereren] Stap 2: generateRapport");
@@ -3027,7 +3027,7 @@ async function generatePageForStudent(
   }
 
   if (templateId === "portfolio") {
-    ref = await uploadPhoto(student.photoUrl);
+    ref = await uploadPhoto(student.photoUrl || createPlaceholderDataUrl());
     mappedRefs.push(ref);
     await generatePortfolio(
       student,
@@ -3041,7 +3041,7 @@ async function generatePageForStudent(
   }
 
   if (templateId === "groei") {
-    ref = await uploadPhoto(student.photoUrl);
+    ref = await uploadPhoto(student.photoUrl || createPlaceholderDataUrl());
     mappedRefs.push(ref);
     await generateGroei(
       student,
@@ -4180,7 +4180,7 @@ function GeneratingScreen({
 
   return (
     <Rows spacing="3u">
-      <Text variant="bold" size="large">
+      <Text variant="bold" size="large" alignment="center">
         <FormattedMessage
           defaultMessage="Creating pages…"
           description="Title shown while reports are being generated"
@@ -4197,7 +4197,7 @@ function GeneratingScreen({
               "Accessible label for the progress bar while generating report pages.",
           })}
         />
-        <Text tone="tertiary">
+        <Text tone="tertiary" size="small" alignment="center">
           {intl.formatMessage(
             {
               defaultMessage:
@@ -4244,7 +4244,7 @@ function GeneratingScreen({
         </Rows>
       )}
 
-      <Button variant="tertiary" onClick={onCancel} stretch>
+      <Button variant="secondary" onClick={onCancel} stretch>
         {intl.formatMessage({
           defaultMessage: "Cancel",
           description: "Button to cancel the page generation process",
@@ -5291,35 +5291,48 @@ export const App = () => {
     // Full-view loading state: hides the tabs and every other control so the
     // user cannot interact with anything else while generation is in progress.
     return (
-      <Box paddingTop="2u" paddingEnd="2u" paddingBottom="2u">
-        <GeneratingScreen
-          students={generatePayload.students}
-          templateId={generatePayload.templateId}
-          reportDateRange={reportDateRange}
-          teacherName={teacherName}
-          reportTitle={
-            reportTitle.trim() ||
-            intl.formatMessage({
-              defaultMessage: "Look what I can already do!",
-              description:
-                "Default report title shown as placeholder and fallback",
-            })
-          }
-          reportFooter={reportFooter}
-          selectedTapes={selectedTapes}
-          reportContentOptions={reportContentOptions}
-          extraTexts={generatePayload.extraTexts}
-          selectedBackground={selectedBackground}
-          headingFont={headingFont}
-          bodyFont={bodyFont}
-          cardBgColor={cardBgColor}
-          cardBgAlpha={cardBgAlpha}
-          onStudentPhotoMapped={rememberStudentPhotoRef}
-          onStudentNameMapped={rememberStudentNameId}
-          onDone={handleDone}
-          onCancel={handleBack}
-        />
-      </Box>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          overflowY: "auto",
+          padding: 16,
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 320 }}>
+          <GeneratingScreen
+            students={generatePayload.students}
+            templateId={generatePayload.templateId}
+            reportDateRange={reportDateRange}
+            teacherName={teacherName}
+            reportTitle={
+              reportTitle.trim() ||
+              intl.formatMessage({
+                defaultMessage: "Look what I can already do!",
+                description:
+                  "Default report title shown as placeholder and fallback",
+              })
+            }
+            reportFooter={reportFooter}
+            selectedTapes={selectedTapes}
+            reportContentOptions={reportContentOptions}
+            extraTexts={generatePayload.extraTexts}
+            selectedBackground={selectedBackground}
+            headingFont={headingFont}
+            bodyFont={bodyFont}
+            cardBgColor={cardBgColor}
+            cardBgAlpha={cardBgAlpha}
+            onStudentPhotoMapped={rememberStudentPhotoRef}
+            onStudentNameMapped={rememberStudentNameId}
+            onDone={handleDone}
+            onCancel={handleBack}
+          />
+        </div>
+      </div>
     );
   }
 
